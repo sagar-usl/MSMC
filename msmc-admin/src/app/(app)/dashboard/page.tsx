@@ -5,6 +5,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatisticCard } from "@/components/dashboard/widgets/StatisticCard";
+import { FileText, Clock3, FolderOpen, Users } from "lucide-react";
 
 export default function DashboardPage() {
   return (
@@ -18,53 +20,37 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardDescription>Total Complaints</CardDescription>
+        <StatisticCard
+          title="Total Complaints"
+          value="1,458"
+          icon={<FileText className="h-5 w-5 text-primary" />}
+          change="+25 Today"
+          trend="up"
+        />
 
-            <CardTitle>1,458</CardTitle>
-          </CardHeader>
+        <StatisticCard
+          title="Hearings Today"
+          value="18"
+          icon={<Clock3 className="h-5 w-5 text-primary" />}
+          change="Scheduled"
+          trend="up"
+        />
 
-          <CardContent>
-            <p className="text-sm text-green-600">+25 Today</p>
-          </CardContent>
-        </Card>
+        <StatisticCard
+          title="Documents"
+          value="362"
+          icon={<FolderOpen className="h-5 w-5 text-primary" />}
+          change="Available"
+          trend="down"
+        />
 
-        <Card>
-          <CardHeader>
-            <CardDescription>Hearings Today</CardDescription>
-
-            <CardTitle>18</CardTitle>
-          </CardHeader>
-
-          <CardContent>
-            <p className="text-sm text-blue-600">Scheduled</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardDescription>Documents</CardDescription>
-
-            <CardTitle>362</CardTitle>
-          </CardHeader>
-
-          <CardContent>
-            <p className="text-sm text-orange-600">Available</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardDescription>Active Users</CardDescription>
-
-            <CardTitle>642</CardTitle>
-          </CardHeader>
-
-          <CardContent>
-            <p className="text-sm text-purple-600">Registered</p>
-          </CardContent>
-        </Card>
+        <StatisticCard
+          title="Active Users"
+          value="642"
+          icon={<Users className="h-5 w-5 text-primary" />}
+          change="Registered"
+          trend="up"
+        />
       </div>
     </div>
   );
