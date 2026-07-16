@@ -3,6 +3,9 @@ import { FileText, Clock3, FolderOpen, Users } from "lucide-react";
 import { getDashboardStatistics } from "@/services/dashboard.service";
 import { DashboardGrid } from "@/components/layouts/DashboardGrid";
 import PageHeader from "@/components/common/PageHeader";
+import { RecentComplaintsTable } from "@/components/dashboard/widgets/RecentComplaintsTable";
+import { Suspense } from "react";
+import { RecentComplaintsTableSkeleton } from "@/components/dashboard/widgets/RecentComplaintsTableSkeleton";
 
 const statisticIcons = {
   "Total Complaints": FileText,
@@ -37,6 +40,10 @@ export default async function DashboardPage() {
           );
         })}
       </DashboardGrid>
+
+      <Suspense fallback={<RecentComplaintsTableSkeleton />}>
+        <RecentComplaintsTable />
+      </Suspense>
     </div>
   );
 }
