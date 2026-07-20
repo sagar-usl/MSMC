@@ -1,7 +1,7 @@
 import type { Complaint } from "@/types/complaint";
 
 export async function getRecentComplaints(): Promise<Complaint[]> {
-  await new Promise((resolve) => setTimeout(resolve, 5000));
+  await new Promise((resolve) => setTimeout(resolve, 0));
 
   return [
     {
