@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 interface DocumentPreviewDialogProps {
   open: boolean;
@@ -45,8 +46,8 @@ export function DocumentPreviewDialog({
 
         <div className="relative">
           {isPreviewLoading && (
-            <div className="flex h-[600px] items-center justify-center rounded-md border">
-              Loading preview...
+            <div className="flex h-[600px] items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin" />
             </div>
           )}
 
