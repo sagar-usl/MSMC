@@ -1,3 +1,8 @@
+import { getComplaintDetails } from "@/services/complaint.service";
+import { ComplaintInformationCard } from "@/components/complaints/ComplaintInformationCard";
+import { ComplaintDescriptionCard } from "@/components/complaints/ComplaintDescriptionCard";
+import { UploadedDocumentsCard } from "@/components/complaints/UploadedDocumentsCard";
+
 interface ComplaintDetailsProps {
   params: Promise<{ id: string }>;
 }
@@ -7,11 +12,15 @@ export default async function ComplaintDetailsPage({
 }: ComplaintDetailsProps) {
   const { id } = await params;
 
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold">Complaint Details</h1>
+  const complaint = await getComplaintDetails(id);
 
-      <p className="mt-4">Complaint ID: {id}</p>
+  return (
+    <div className="space-y-6 p-6">
+      <ComplaintInformationCard complaint={complaint} />
+
+      <ComplaintDescriptionCard description={complaint.description} />
+
+      <UploadedDocumentsCard documents={complaint.documents} />
     </div>
   );
 }

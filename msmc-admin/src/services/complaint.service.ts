@@ -1,4 +1,5 @@
 import type { Complaint } from "@/types/complaint";
+import type { ComplaintDetails } from "@/types/complaint-details";
 
 export async function getRecentComplaints(): Promise<Complaint[]> {
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -40,4 +41,37 @@ export async function getRecentComplaints(): Promise<Complaint[]> {
       status: "Rejected",
     },
   ];
+}
+
+export async function getComplaintDetails(
+  id: string
+): Promise<ComplaintDetails> {
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  return {
+    id,
+    complainantName: "Amir Khan",
+    mobileNumber: "9876543210",
+    category: "Education",
+    description: "Scholarship amount has not been credited despite approval.",
+    submittedAt: "2026-07-12",
+    status: "Under Review",
+    documents: [
+      {
+        id: "DOC-001",
+        fileName: "Aadhaar Card.pdf",
+        fileUrl: "/sample-files/aadhar.png",
+      },
+      {
+        id: "DOC-002",
+        fileName: "Income Certificate.pdf",
+        fileUrl: "/sample-files/income.png",
+      },
+      {
+        id: "DOC-003",
+        fileName: "Scholarship Application.pdf",
+        fileUrl: "/sample-files/scholarship.png",
+      },
+    ],
+  };
 }
