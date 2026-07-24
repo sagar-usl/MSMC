@@ -29,13 +29,13 @@ export function DocumentPreviewDialog({
     setIsPreviewLoading(true);
   }, [document]);
 
-  const isPdf = document?.fileUrl?.toLowerCase().endsWith(".pdf");
-
-  const isImage = document?.fileUrl?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-
   if (!document) {
     return null;
   }
+
+  const isPdf = document.fileUrl.toLowerCase().endsWith(".pdf");
+
+  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(document.fileUrl);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
