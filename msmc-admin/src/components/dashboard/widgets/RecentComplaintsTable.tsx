@@ -1,4 +1,4 @@
-import { getRecentComplaints } from "@/services/complaint.service";
+import { listComplaints } from "@/lib/complaints";
 import { ComplaintTable } from "@/components/complaints/ComplaintTable";
 import {
   Card,
@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 
 export async function RecentComplaintsTable() {
-  const complaints = await getRecentComplaints();
+  const complaints = await listComplaints();
 
   return (
     <Card>

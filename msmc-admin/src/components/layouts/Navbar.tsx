@@ -1,9 +1,24 @@
-import { Bell, Search } from "lucide-react";
+import { Bell, LogOut, Search } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { logout } from "@/actions/auth.actions";
 
-export default function Navbar() {
+interface NavbarProps {
+  userName: string;
+}
+
+function initialsOf(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+export default function Navbar({ userName }: NavbarProps) {
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-white px-6">
       <div className="relative w-96">
@@ -23,8 +38,18 @@ export default function Navbar() {
         </button>
 
         <Avatar>
-          <AvatarFallback>SD</AvatarFallback>
+          <AvatarFallback>{initialsOf(userName)}</AvatarFallback>
         </Avatar>
+
+        <form action={logout}>
+          <button
+            type="submit"
+            className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+            title="Log out"
+          >
+            <LogOut size={18} />
+          </button>
+        </form>
       </div>
     </header>
   );

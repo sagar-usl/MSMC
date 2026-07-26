@@ -1,6 +1,6 @@
 import { StatisticCard } from "@/components/dashboard/widgets/StatisticCard";
 import { FileText, Clock3, FolderOpen, Users } from "lucide-react";
-import { getDashboardStatistics } from "@/services/dashboard.service";
+import { getDashboardStatistics } from "@/lib/dashboard";
 import { DashboardGrid } from "@/components/layouts/DashboardGrid";
 import PageHeader from "@/components/common/PageHeader";
 import { RecentComplaintsTable } from "@/components/dashboard/widgets/RecentComplaintsTable";

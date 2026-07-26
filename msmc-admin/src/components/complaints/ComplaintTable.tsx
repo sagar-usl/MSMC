@@ -7,7 +7,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ComplaintTableRow } from "./ComplaintTableRow";
-import { Key } from "lucide-react";
 
 interface ComplaintTableProps {
   complaints: Complaint[];
@@ -23,6 +22,7 @@ export function ComplaintTable({ complaints }: ComplaintTableProps) {
           <TableHead>Category</TableHead>
           <TableHead>Submitted</TableHead>
           <TableHead>Status</TableHead>
+          <TableHead>Assigned Officer</TableHead>
           <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>

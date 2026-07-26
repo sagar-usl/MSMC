@@ -1,4 +1,5 @@
 import type { ComplaintDetails } from "@/types/complaint-details";
+import { categoryLabels } from "@/lib/labels";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { InfoField } from "@/components/common/InfoField";
@@ -24,10 +25,16 @@ export function ComplaintInformationCard({
 
           <InfoField label="Mobile Number">{complaint.mobileNumber}</InfoField>
 
-          <InfoField label="Category">{complaint.category}</InfoField>
+          <InfoField label="Category">{categoryLabels[complaint.category]}</InfoField>
 
           <InfoField label="Status">
             <StatusBadge status={complaint.status} />
+          </InfoField>
+
+          <InfoField label="Assigned Officer">
+            {complaint.assignedOfficer ?? (
+              <span className="text-muted-foreground">Unassigned</span>
+            )}
           </InfoField>
 
           <InfoField label="Submitted On">{complaint.submittedAt}</InfoField>

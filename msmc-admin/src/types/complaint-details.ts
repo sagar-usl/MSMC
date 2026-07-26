@@ -6,6 +6,13 @@ export interface ComplaintDocument {
   fileUrl: string;
 }
 
+export interface HearingInfo {
+  date: string;
+  time: string;
+  location: string;
+  officer: string;
+}
+
 export interface ComplaintDetails {
   id: string;
   complainantName: string;
@@ -14,5 +21,10 @@ export interface ComplaintDetails {
   description: string;
   submittedAt: string;
   status: ComplaintStatus;
+  assignedOfficer: string | null;
   documents: ComplaintDocument[];
+  rejectionReason: string | null;
+  hearing: HearingInfo | null;
+  hearing2: HearingInfo | null;
+  verdictFile: string | null;
 }

@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ComplaintDetails } from "@/types/complaint-details";
 
 interface ComplaintDescriptionCardProps {
   description: string;

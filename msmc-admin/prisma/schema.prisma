@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CITIZEN
+  OFFICER
+}
+
+enum ComplaintCategory {
+  DOCUMENTS
+  EDUCATION
+  SCHEME_DELAY
+  CORRUPTION
+  OTHER
+}
+
+enum ComplaintStatus {
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+  CASE_ONBOARD
+  FINAL_HEARING_SCHEDULED
+  DISPOSED_OF
+}
+
+enum HearingKind {
+  FIRST
+  FINAL
+}
+
+model User {
+  id           String    @id @default(uuid())
+  phone        String?   @unique
+  email        String?   @unique
+  passwordHash String?
+  name         String?
+  role         Role      @default(CITIZEN)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+
+  complaints         Complaint[]              @relation("CitizenComplaints")
+  assignedComplaints Complaint[]              @relation("AssignedOfficer")
+  statusChanges      ComplaintStatusHistory[]
+  feedback           Feedback[]
+
+  @@map("users")
+}
+
+model Complaint {
+  id                String    @id @default(uuid())
+  ticketId          String    @unique
+  citizen           User      @relation("CitizenComplaints", fields: [citizenId], references: [id])
+  citizenId         String
+  fullName          String
+  mobile            String
+  category          ComplaintCategory
+  description       String
+  attachmentPath    String?
+  status            ComplaintStatus @default(UNDER_REVIEW)
+  rejectionReason   String?
+  verdictFilePath   String?
+  assignedOfficer   User?     @relation("AssignedOfficer", fields: [assignedOfficerId], references: [id])
+  assignedOfficerId String?
+  // Free-text display name from the "Assign Officer" picker (constants/officers.ts) —
+  // distinct from assignedOfficerId, which tracks which logged-in account actually
+  // performed accept/reject/hearing/verdict actions for status-history attribution.
+  assignedOfficerName String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  statusHistory ComplaintStatusHistory[]
+  hearings      Hearing[]
+
+  @@map("complaints")
+}
+
+model ComplaintStatusHistory {
+  id          String          @id @default(uuid())
+  complaint   Complaint       @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  complaintId String
+  status      ComplaintStatus
+  note        String?
+  changedBy   User?           @relation(fields: [changedById], references: [id])
+  changedById String?
+  createdAt   DateTime        @default(now())
+
+  @@map("complaint_status_history")
+}
+
+model Hearing {
+  id            String      @id @default(uuid())
+  complaint     Complaint   @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  complaintId   String
+  kind          HearingKind
+  scheduledDate DateTime    @db.Date
+  scheduledTime String
+  location      String
+  officerName   String
+  createdAt     DateTime    @default(now())
+
+  @@map("hearings")
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+  name      String?
+  rating    Int
+  message   String
+  createdAt DateTime @default(now())
+
+  @@map("feedback")
+}
