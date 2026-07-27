@@ -37,7 +37,7 @@ export function ComplaintRowActions({ complaint }: ComplaintRowActionsProps) {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => router.push(`/complaints/${complaint.id}`)}>
+          <DropdownMenuItem onClick={() => router.push(`/complaints/${encodeURIComponent(complaint.id)}`)}>
             <Eye />
             View Details
           </DropdownMenuItem>

@@ -30,9 +30,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
+const MAX_ATTACHMENTS = 5;
+
 /**
  * POST /api/v1/complaints
- * Body: { fullName, mobile, category, description }
+ * Body: { fullName, mobile, category, description, attachments? }
+ * attachments: [{ fileName, filePath }] — files already uploaded via
+ * POST /api/v1/uploads/complaint-attachment, referenced here by filePath.
  * Returns: { ticketId }
  */
 export async function POST(request: NextRequest) {
@@ -41,7 +45,7 @@ export async function POST(request: NextRequest) {
     return corsJson({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { fullName, mobile, category, description } = body;
+  const { fullName, mobile, category, description, attachments } = body;
 
   if (!fullName || typeof fullName !== "string" || fullName.trim().length < 2) {
     return corsJson({ error: "fullName is required (min 2 chars)" }, { status: 400 });
@@ -58,6 +62,20 @@ export async function POST(request: NextRequest) {
   if (!description || typeof description !== "string" || description.trim().length < 10) {
     return corsJson({ error: "description must be at least 10 characters" }, { status: 400 });
   }
+  if (attachments !== undefined) {
+    const isValid =
+      Array.isArray(attachments) &&
+      attachments.length <= MAX_ATTACHMENTS &&
+      attachments.every(
+        (a) => a && typeof a.fileName === "string" && typeof a.filePath === "string"
+      );
+    if (!isValid) {
+      return corsJson(
+        { error: `attachments must be an array of at most ${MAX_ATTACHMENTS} { fileName, filePath } objects` },
+        { status: 400 }
+      );
+    }
+  }
 
   try {
     const result = await createComplaint({
@@ -65,6 +83,7 @@ export async function POST(request: NextRequest) {
       mobile,
       category,
       description: description.trim(),
+      attachments,
     });
     return corsJson(result, { status: 201 });
   } catch {

@@ -98,7 +98,7 @@ async function main() {
       await prisma.hearing.create({
         data: {
           complaintId: complaint.id,
-          kind: "FIRST",
+          kind: "INTERIM",
           scheduledDate: new Date(params.hearing.date),
           scheduledTime: params.hearing.time,
           location: params.hearing.location,

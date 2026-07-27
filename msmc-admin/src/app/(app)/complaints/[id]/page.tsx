@@ -15,7 +15,7 @@ export default async function ComplaintDetailsPage({
 }: ComplaintDetailsProps) {
   const { id } = await params;
 
-  const complaint = await getComplaintByTicketId(id);
+  const complaint = await getComplaintByTicketId(decodeURIComponent(id));
 
   if (!complaint) {
     notFound();

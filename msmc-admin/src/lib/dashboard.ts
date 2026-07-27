@@ -32,7 +32,7 @@ export async function getDashboardStatistics(): Promise<DashboardStatistic[]> {
     prisma.hearing.count({
       where: { scheduledDate: { gte: startOfToday(), lt: startOfTomorrow() } },
     }),
-    prisma.complaint.count({ where: { attachmentPath: { not: null } } }),
+    prisma.complaintAttachment.count(),
     prisma.complaint.count({ where: { verdictFilePath: { not: null } } }),
     prisma.user.count({ where: { role: "CITIZEN" } }),
   ]);

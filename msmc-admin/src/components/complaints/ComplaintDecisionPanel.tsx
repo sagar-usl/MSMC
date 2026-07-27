@@ -10,7 +10,7 @@ import { HearingScheduleForm, type HearingFormData } from "./HearingScheduleForm
 import { HearingInfoCard } from "./HearingInfoCard";
 import {
   acceptComplaintAction,
-  scheduleFirstHearingAction,
+  scheduleInterimHearingAction,
   scheduleFinalHearingAction,
   uploadVerdictAction,
 } from "@/actions/complaints.actions";
@@ -31,8 +31,10 @@ export function ComplaintDecisionPanel({ complaint }: ComplaintDecisionPanelProp
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [nextHearingChoice, setNextHearingChoice] = useState<"interim" | "final" | null>(null);
 
-  const { id, status, rejectionReason, hearing, hearing2, verdictFile } = complaint;
+  const { id, status, rejectionReason, hearings, verdictFile, assignedOfficer } = complaint;
+  const hasFinalHearing = hearings.some((h) => h.isFinal);
 
   return (
     <div className="space-y-6">
@@ -71,25 +73,70 @@ export function ComplaintDecisionPanel({ complaint }: ComplaintDecisionPanelProp
         </Card>
       )}
 
-      {status === "ACCEPTED" && !hearing && (
+      {status === "ACCEPTED" && hearings.length === 0 && (
         <HearingScheduleForm
           title="Schedule Hearing"
           submitLabel="Save & Schedule Hearing"
-          onSubmit={(data: HearingFormData) => scheduleFirstHearingAction(id, data)}
+          defaultOfficer={assignedOfficer}
+          onSubmit={(data: HearingFormData) => scheduleInterimHearingAction(id, data)}
         />
       )}
 
-      {hearing && <HearingInfoCard title="Scheduled Hearing" hearing={hearing} />}
-
-      {status === "CASE_ONBOARD" && !hearing2 && (
-        <HearingScheduleForm
-          title="Schedule Final Hearing"
-          submitLabel="Save & Schedule Final Hearing"
-          onSubmit={(data: HearingFormData) => scheduleFinalHearingAction(id, data)}
+      {hearings.map((hearing, index) => (
+        <HearingInfoCard
+          key={`${hearing.date}-${hearing.time}-${hearing.location}`}
+          title={hearing.isFinal ? "Final Hearing" : `Hearing ${index + 1}`}
+          hearing={hearing}
         />
-      )}
+      ))}
 
-      {hearing2 && <HearingInfoCard title="Final Hearing" hearing={hearing2} />}
+      {status === "CASE_ONBOARD" && hearings.length > 0 && !hasFinalHearing && (
+        nextHearingChoice === null ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>What&apos;s Next?</CardTitle>
+            </CardHeader>
+            <CardContent className="flex gap-3">
+              <Button variant="outline" onClick={() => setNextHearingChoice("interim")}>
+                Schedule Next Hearing
+              </Button>
+              <Button onClick={() => setNextHearingChoice("final")}>
+                Schedule Final Hearing
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            <Button variant="link" className="h-auto p-0" onClick={() => setNextHearingChoice(null)}>
+              ← Choose differently
+            </Button>
+            {nextHearingChoice === "interim" ? (
+              <HearingScheduleForm
+                title="Schedule Next Hearing"
+                submitLabel="Save & Schedule Next Hearing"
+                defaultOfficer={assignedOfficer}
+                onSubmit={async (data: HearingFormData) => {
+                  await scheduleInterimHearingAction(id, data);
+                  // Reset so the next render (with the new hearing already
+                  // in `hearings`) shows the choice card again, not this
+                  // same form re-appearing with its now-stale values.
+                  setNextHearingChoice(null);
+                }}
+              />
+            ) : (
+              <HearingScheduleForm
+                title="Schedule Final Hearing"
+                submitLabel="Save & Schedule Final Hearing"
+                defaultOfficer={assignedOfficer}
+                onSubmit={async (data: HearingFormData) => {
+                  await scheduleFinalHearingAction(id, data);
+                  setNextHearingChoice(null);
+                }}
+              />
+            )}
+          </div>
+        )
+      )}
 
       {status === "FINAL_HEARING_SCHEDULED" && !verdictFile && (
         <Card>

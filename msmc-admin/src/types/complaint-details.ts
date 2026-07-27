@@ -11,6 +11,7 @@ export interface HearingInfo {
   time: string;
   location: string;
   officer: string;
+  isFinal: boolean;
 }
 
 export interface ComplaintDetails {
@@ -24,7 +25,6 @@ export interface ComplaintDetails {
   assignedOfficer: string | null;
   documents: ComplaintDocument[];
   rejectionReason: string | null;
-  hearing: HearingInfo | null;
-  hearing2: HearingInfo | null;
+  hearings: HearingInfo[];
   verdictFile: string | null;
 }

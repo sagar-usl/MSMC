@@ -4,10 +4,13 @@ import type { ComplaintCategory, HearingKind } from "@/generated/prisma/client";
 import type { Complaint } from "@/types/complaint";
 import type { ComplaintDetails } from "@/types/complaint-details";
 
+// Dash-separated (not slash-separated): this string is also used as a URL
+// path segment (admin dashboard routes, /api/v1/complaints/:ticketId), and a
+// literal "/" splits into extra path segments there, breaking navigation.
 function generateTicketId(): string {
   const year = new Date().getFullYear();
   const n = Math.floor(100000 + Math.random() * 899999);
-  return `CMP/${year}/${n}`;
+  return `CMP-${year}-${n}`;
 }
 
 /**
@@ -21,7 +24,7 @@ export async function createComplaint(input: {
   mobile: string;
   category: ComplaintCategory;
   description: string;
-  attachmentPath?: string;
+  attachments?: { fileName: string; filePath: string }[];
 }): Promise<{ ticketId: string }> {
   const citizen = await prisma.user.upsert({
     where: { phone: input.mobile },
@@ -38,7 +41,9 @@ export async function createComplaint(input: {
       mobile: input.mobile,
       category: input.category,
       description: input.description,
-      attachmentPath: input.attachmentPath,
+      attachments: input.attachments?.length
+        ? { create: input.attachments }
+        : undefined,
     },
   });
   await prisma.complaintStatusHistory.create({
@@ -95,15 +100,13 @@ export async function listComplaints(): Promise<Complaint[]> {
 }
 
 const detailInclude = {
-  hearings: { orderBy: { createdAt: "asc" as const } },
+  hearings: { orderBy: { scheduledDate: "asc" as const } },
+  attachments: { orderBy: { createdAt: "asc" as const } },
 } as const;
 
 function toDetails(
   row: NonNullable<Awaited<ReturnType<typeof findByTicketId>>>
 ): ComplaintDetails {
-  const hearing = row.hearings.find((h) => h.kind === "FIRST") ?? null;
-  const hearing2 = row.hearings.find((h) => h.kind === "FINAL") ?? null;
-
   return {
     id: row.ticketId,
     complainantName: row.fullName,
@@ -113,27 +116,20 @@ function toDetails(
     submittedAt: row.createdAt.toISOString().slice(0, 10),
     status: row.status as ComplaintDetails["status"],
     assignedOfficer: row.assignedOfficerName,
-    documents: row.attachmentPath
-      ? [{ id: `${row.id}-attachment`, fileName: row.attachmentPath, fileUrl: row.attachmentPath }]
-      : [],
+    documents: row.attachments.map((a) => ({
+      id: a.id,
+      fileName: a.fileName,
+      fileUrl: `/api/v1/uploads/complaint-attachment/${encodeURIComponent(a.filePath)}?mobile=${encodeURIComponent(row.mobile)}&ticket=${encodeURIComponent(row.ticketId)}`,
+    })),
     rejectionReason: row.rejectionReason,
     verdictFile: row.verdictFilePath,
-    hearing: hearing
-      ? {
-          date: hearing.scheduledDate.toISOString().slice(0, 10),
-          time: hearing.scheduledTime,
-          location: hearing.location,
-          officer: hearing.officerName,
-        }
-      : null,
-    hearing2: hearing2
-      ? {
-          date: hearing2.scheduledDate.toISOString().slice(0, 10),
-          time: hearing2.scheduledTime,
-          location: hearing2.location,
-          officer: hearing2.officerName,
-        }
-      : null,
+    hearings: row.hearings.map((h) => ({
+      date: h.scheduledDate.toISOString().slice(0, 10),
+      time: h.scheduledTime,
+      location: h.location,
+      officer: h.officerName,
+      isFinal: h.kind === "FINAL",
+    })),
   };
 }
 
@@ -203,7 +199,7 @@ export async function scheduleHearing(
     },
   });
 
-  const nextStatus = kind === "FIRST" ? "CASE_ONBOARD" : "FINAL_HEARING_SCHEDULED";
+  const nextStatus = kind === "INTERIM" ? "CASE_ONBOARD" : "FINAL_HEARING_SCHEDULED";
   await prisma.complaint.update({ where: { id }, data: { status: nextStatus } });
   await recordStatus(id, nextStatus, { changedById: officerId });
 }

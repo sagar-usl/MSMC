@@ -29,8 +29,10 @@ enum ComplaintStatus {
   DISPOSED_OF
 }
 
+// INTERIM covers every non-final hearing (first, second, third...) — a case
+// can go through as many interim hearings as needed before a FINAL one.
 enum HearingKind {
-  FIRST
+  INTERIM
   FINAL
 }
 
@@ -74,7 +76,6 @@ model Complaint {
   mobile            String
   category          ComplaintCategory
   description       String
-  attachmentPath    String?
   status            ComplaintStatus @default(UNDER_REVIEW)
   rejectionReason   String?
   verdictFilePath   String?
@@ -89,8 +90,20 @@ model Complaint {
 
   statusHistory ComplaintStatusHistory[]
   hearings      Hearing[]
+  attachments   ComplaintAttachment[]
 
   @@map("complaints")
+}
+
+model ComplaintAttachment {
+  id          String    @id @default(uuid())
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  complaintId String
+  fileName    String
+  filePath    String
+  createdAt   DateTime  @default(now())
+
+  @@map("complaint_attachments")
 }
 
 model ComplaintStatusHistory {

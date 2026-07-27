@@ -6,6 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { OFFICERS } from "@/constants/officers";
 
 export interface HearingFormData {
   date: string;
@@ -17,11 +25,17 @@ export interface HearingFormData {
 interface HearingScheduleFormProps {
   title: string;
   submitLabel: string;
+  defaultOfficer?: string | null;
   onSubmit: (data: HearingFormData) => Promise<void>;
 }
 
-export function HearingScheduleForm({ title, submitLabel, onSubmit }: HearingScheduleFormProps) {
-  const [data, setData] = useState<HearingFormData>({ date: "", time: "", location: "", officerName: "" });
+export function HearingScheduleForm({ title, submitLabel, defaultOfficer, onSubmit }: HearingScheduleFormProps) {
+  const [data, setData] = useState<HearingFormData>({
+    date: "",
+    time: "",
+    location: "",
+    officerName: defaultOfficer ?? "",
+  });
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -79,12 +93,21 @@ export function HearingScheduleForm({ title, submitLabel, onSubmit }: HearingSch
 
         <div className="space-y-1.5">
           <Label htmlFor="hearing-officer">Officer Name</Label>
-          <Input
-            id="hearing-officer"
-            placeholder="Enter officer name"
+          <Select
             value={data.officerName}
-            onChange={(e) => setData((d) => ({ ...d, officerName: e.target.value }))}
-          />
+            onValueChange={(value) => setData((d) => ({ ...d, officerName: value ?? "" }))}
+          >
+            <SelectTrigger id="hearing-officer" className="w-full">
+              <SelectValue placeholder="Select an officer" />
+            </SelectTrigger>
+            <SelectContent>
+              {OFFICERS.map((officer) => (
+                <SelectItem key={officer} value={officer}>
+                  {officer}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}

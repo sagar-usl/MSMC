@@ -26,12 +26,15 @@ export async function assignOfficerAction(ticketId: string, officerName: string)
   revalidatePath("/dashboard");
 }
 
-export async function scheduleFirstHearingAction(
+// Used for every non-final hearing — the first one and any "next hearing"
+// scheduled after it. It's the same operation each time; only the choice of
+// "next" vs "final" (made in the UI) determines which action gets called.
+export async function scheduleInterimHearingAction(
   ticketId: string,
   data: { date: string; time: string; location: string; officerName: string }
 ) {
   const officer = await requireOfficer();
-  await complaints.scheduleHearing(ticketId, "FIRST", data, officer.id);
+  await complaints.scheduleHearing(ticketId, "INTERIM", data, officer.id);
   revalidatePath(`/complaints/${ticketId}`);
 }
 
