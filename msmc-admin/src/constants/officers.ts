@@ -1,5 +1,5 @@
 export const OFFICERS = [
-  " Shaikh Washim",
+  "Shaikh Washim",
   "Afasar Shaikh",
   "Anthoni Gonzalwis",
   "Sanjay Jain",

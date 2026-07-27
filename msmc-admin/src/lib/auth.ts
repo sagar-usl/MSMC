@@ -2,6 +2,7 @@ import "server-only";
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { User } from "@/generated/prisma/client";
 
@@ -67,4 +68,17 @@ export async function getCurrentUser(): Promise<User | null> {
 export async function getCurrentOfficer(): Promise<User | null> {
   const user = await getCurrentUser();
   return user && user.role === "OFFICER" ? user : null;
+}
+
+/**
+ * For Server Actions: re-verifies the caller is a logged-in officer instead
+ * of trusting proxy.ts alone (Server Actions are separate POST requests that
+ * can bypass proxy.ts route matchers if a route is ever moved).
+ */
+export async function requireOfficer(): Promise<User> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "OFFICER") {
+    redirect("/login");
+  }
+  return user;
 }

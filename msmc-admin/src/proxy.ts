@@ -29,5 +29,16 @@ async function verifyToken(token: string): Promise<boolean> {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/complaints/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/complaints/:path*",
+    "/users/:path*",
+    "/documents/:path*",
+    "/education/:path*",
+    "/initiatives/:path*",
+    "/news/:path*",
+    "/settings/:path*",
+    // /api/v1/* is intentionally excluded — public citizen-facing API.
+    // /api/uploads/* is officer-only but uses its own getCurrentOfficer() check.
+  ],
 };

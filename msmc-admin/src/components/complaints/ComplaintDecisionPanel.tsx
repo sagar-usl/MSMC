@@ -29,6 +29,8 @@ export function ComplaintDecisionPanel({ complaint }: ComplaintDecisionPanelProp
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const { id, status, rejectionReason, hearing, hearing2, verdictFile } = complaint;
 
@@ -94,24 +96,45 @@ export function ComplaintDecisionPanel({ complaint }: ComplaintDecisionPanelProp
           <CardHeader>
             <CardTitle>Upload Verdict</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 hover:bg-slate-100">
-              <span className="text-sm font-medium text-blue-700">Upload Verdict Document</span>
+              <span className="text-sm font-medium text-blue-700">
+                {isUploading ? "Uploading…" : "Upload Verdict Document"}
+              </span>
               <span className="text-xs text-muted-foreground">PDF only</span>
               <input
                 type="file"
-                accept=".pdf"
+                accept="application/pdf"
                 className="hidden"
-                onChange={(e) => {
+                disabled={isUploading}
+                onChange={async (e) => {
                   const file = e.target.files?.[0];
-                  const fileName = file?.name ?? `verdict_${id.replace(/\W/g, "")}.pdf`;
-                  startTransition(async () => {
-                    await uploadVerdictAction(id, fileName);
-                    router.refresh();
-                  });
+                  if (!file) return;
+                  setIsUploading(true);
+                  setUploadError(null);
+                  try {
+                    const formData = new FormData();
+                    formData.append("file", file);
+                    const res = await fetch("/api/uploads/verdict", { method: "POST", body: formData });
+                    if (!res.ok) {
+                      const body = (await res.json().catch(() => ({}))) as { error?: string };
+                      throw new Error(body.error ?? "Upload failed");
+                    }
+                    const { fileName } = (await res.json()) as { fileName: string };
+                    startTransition(async () => {
+                      await uploadVerdictAction(id, fileName);
+                      router.refresh();
+                    });
+                  } catch (err) {
+                    setUploadError(err instanceof Error ? err.message : "Upload failed");
+                  } finally {
+                    setIsUploading(false);
+                    e.target.value = "";
+                  }
                 }}
               />
             </label>
+            {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
           </CardContent>
         </Card>
       )}

@@ -194,6 +194,50 @@ async function main() {
     hearing2: { date: "2026-06-28", time: "11:00", location: "State Minority Commission Office, Mumbai", officerName: "MSMC Admin" },
   });
 
+  // --- Content modules: same rows the Flutter app's screens show as static
+  // data today (documents_content.dart etc.) — mirrored here so the admin
+  // CMS screens have something real to list/edit against.
+  await prisma.document.createMany({
+    data: [
+      { titleEn: "Annual Report 2024-25", titleMr: "वार्षिक अहवाल २०२४-२५", metaEn: "PDF · 2.4 MB", metaMr: "PDF · 2.4 MB", category: "REPORTS", sortOrder: 0 },
+      { titleEn: "Government Resolution - GR/2026/14", titleMr: "शासन निर्णय - GR/2026/14", metaEn: "PDF · 1.8 MB", metaMr: "PDF · 1.8 MB", category: "ACTS", sortOrder: 1 },
+      { titleEn: "Minority Commission Act, 2004", titleMr: "अल्पसंख्याक आयोग कायदा, २००४", metaEn: "PDF · 3.1 MB", metaMr: "PDF · 3.1 MB", category: "ACTS", sortOrder: 2 },
+      { titleEn: "Scholarship Disbursement Policy", titleMr: "शिष्यवृत्ती वितरण धोरण", metaEn: "PDF · 2.0 MB", metaMr: "PDF · 2.0 MB", category: "POLICIES", sortOrder: 3 },
+      { titleEn: "RTI Handbook", titleMr: "माहिती अधिकार पुस्तिका", metaEn: "PDF · 1.2 MB", metaMr: "PDF · 1.2 MB", category: "POLICIES", sortOrder: 4 },
+    ],
+    skipDuplicates: true,
+  });
+
+  await prisma.educationItem.createMany({
+    data: [
+      { titleEn: "Pre-Matric Scholarship", titleMr: "मॅट्रिकपूर्व शिष्यवृत्ती", descEn: "For students in classes 1-10", descMr: "इयत्ता १ ते १० च्या विद्यार्थ्यांसाठी", sortOrder: 0 },
+      { titleEn: "Post-Matric Scholarship", titleMr: "मॅट्रिकोत्तर शिष्यवृत्ती", descEn: "For undergraduate & postgraduate students", descMr: "पदवी व पदव्युत्तर विद्यार्थ्यांसाठी", sortOrder: 1 },
+      { titleEn: "Merit-cum-Means Scholarship", titleMr: "गुणवत्ता-सह-गरजाधारित शिष्यवृत्ती", descEn: "For professional & technical courses", descMr: "व्यावसायिक व तांत्रिक अभ्यासक्रमांसाठी", sortOrder: 2 },
+      { titleEn: "NSP Scholarship", titleMr: "NSP शिष्यवृत्ती", descEn: "Apply via National Scholarship Portal", descMr: "राष्ट्रीय शिष्यवृत्ती पोर्टलवर अर्ज करा", sortOrder: 3 },
+    ],
+    skipDuplicates: true,
+  });
+
+  await prisma.initiative.createMany({
+    data: [
+      { titleEn: "Skill Development Program", titleMr: "कौशल्य विकास कार्यक्रम", districtEn: "Sambhaji Nagar", districtMr: "संभाजी नगर", descriptionEn: "Vocational training and job placement support for minority youth.", descriptionMr: "अल्पसंख्याक युवकांसाठी व्यावसायिक प्रशिक्षण व रोजगार सहाय्य.", sortOrder: 0 },
+      { titleEn: "Women Empowerment Cell", titleMr: "महिला सक्षमीकरण कक्ष", districtEn: "Nashik", districtMr: "नाशिक", descriptionEn: "Micro-credit, self-help groups and entrepreneurship support for women.", descriptionMr: "महिलांसाठी सूक्ष्म-कर्ज, बचत गट व उद्योजकता सहाय्य.", sortOrder: 1 },
+      { titleEn: "Youth Development Mission", titleMr: "युवा विकास मिशन", districtEn: "Beed", districtMr: "बीड", descriptionEn: "Career counselling, competitive exam coaching and mentorship.", descriptionMr: "करिअर मार्गदर्शन, स्पर्धा परीक्षा प्रशिक्षण व मार्गदर्शन.", sortOrder: 2 },
+      { titleEn: "Community Outreach Drives", titleMr: "सामुदायिक जनजागृती मोहीम", districtEn: "Bhandara", districtMr: "भंडारा", descriptionEn: "District-level camps to raise awareness of schemes and entitlements.", descriptionMr: "योजना व हक्कांबाबत जनजागृतीसाठी जिल्हास्तरीय शिबिरे.", sortOrder: 3 },
+    ],
+    skipDuplicates: true,
+  });
+
+  await prisma.newsItem.createMany({
+    data: [
+      { tag: "SCHEME_UPDATE", publishedDate: new Date("2026-07-02"), titleEn: "Post-Matric Scholarship 2026-27 applications now open", titleMr: "मॅट्रिकोत्तर शिष्यवृत्ती २०२६-२७ साठी अर्ज सुरू", snippetEn: "Students can apply on the National Scholarship Portal until 30 Sept 2026.", snippetMr: "विद्यार्थी ३० सप्टेंबर २०२६ पर्यंत राष्ट्रीय शिष्यवृत्ती पोर्टलवर अर्ज करू शकतात.", sortOrder: 0 },
+      { tag: "NOTICE", publishedDate: new Date("2026-06-28"), titleEn: "Revised income eligibility limits for welfare schemes", titleMr: "कल्याण योजनांसाठी सुधारित उत्पन्न पात्रता मर्यादा", snippetEn: "Updated income criteria effective from the current financial year.", snippetMr: "चालू आर्थिक वर्षापासून सुधारित उत्पन्न निकष लागू.", sortOrder: 1 },
+      { tag: "EVENT", publishedDate: new Date("2026-06-20"), titleEn: "District awareness camps scheduled across Maharashtra", titleMr: "महाराष्ट्रभर जिल्हास्तरीय जनजागृती शिबिरे नियोजित", snippetEn: "Camps to help citizens understand and apply for available schemes.", snippetMr: "नागरिकांना योजना समजून घेण्यास व अर्ज करण्यास मदत करणारी शिबिरे.", sortOrder: 2 },
+      { tag: "NOTICE", publishedDate: new Date("2026-06-10"), titleEn: "Helpline hours extended for grievance support", titleMr: "तक्रार सहाय्यासाठी हेल्पलाइन वेळ वाढवली", snippetEn: "The commission helpline is now available 8 AM - 8 PM, all days.", snippetMr: "आयोगाची हेल्पलाइन आता सकाळी ८ ते रात्री ८ पर्यंत उपलब्ध.", sortOrder: 3 },
+    ],
+    skipDuplicates: true,
+  });
+
   console.log("Seed complete.");
   console.log("Officer login: admin@msmc.gov.in / Admin@123");
 }

@@ -34,6 +34,18 @@ enum HearingKind {
   FINAL
 }
 
+enum DocumentCategory {
+  REPORTS
+  ACTS
+  POLICIES
+}
+
+enum NewsTag {
+  SCHEME_UPDATE
+  NOTICE
+  EVENT
+}
+
 model User {
   id           String    @id @default(uuid())
   phone        String?   @unique
@@ -41,6 +53,7 @@ model User {
   passwordHash String?
   name         String?
   role         Role      @default(CITIZEN)
+  isActive     Boolean   @default(true)
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
 
@@ -117,4 +130,66 @@ model Feedback {
   createdAt DateTime @default(now())
 
   @@map("feedback")
+}
+
+// --- Content modules: bilingual (EN/MR) editorial content surfaced read-only
+// in the citizen (Flutter) app's Documents/Education/Initiatives/News screens.
+
+model Document {
+  id        String           @id @default(uuid())
+  titleEn   String
+  titleMr   String
+  metaEn    String?
+  metaMr    String?
+  category  DocumentCategory
+  filePath  String?
+  sortOrder Int              @default(0)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@map("documents")
+}
+
+model EducationItem {
+  id        String   @id @default(uuid())
+  titleEn   String
+  titleMr   String
+  descEn    String?
+  descMr    String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("education_items")
+}
+
+model Initiative {
+  id            String   @id @default(uuid())
+  titleEn       String
+  titleMr       String
+  districtEn    String
+  districtMr    String
+  descriptionEn String?
+  descriptionMr String?
+  imagePath     String?
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("initiatives")
+}
+
+model NewsItem {
+  id            String   @id @default(uuid())
+  tag           NewsTag
+  publishedDate DateTime @db.Date
+  titleEn       String
+  titleMr       String
+  snippetEn     String?
+  snippetMr     String?
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("news_items")
 }

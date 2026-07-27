@@ -1,21 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { requireOfficer } from "@/lib/auth";
 import * as complaints from "@/lib/complaints";
-
-// Per Next.js's own guidance (see proxy.ts): Server Actions are separate POST
-// requests that can bypass proxy.ts route matchers if a route is ever moved,
-// so every mutating action here re-verifies the caller is a logged-in
-// officer instead of trusting proxy alone.
-async function requireOfficer() {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "OFFICER") {
-    redirect("/login");
-  }
-  return user;
-}
 
 export async function acceptComplaintAction(ticketId: string) {
   const officer = await requireOfficer();
