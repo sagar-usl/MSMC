@@ -44,3 +44,6 @@ next-env.d.ts
 
 # user-uploaded files (verdict PDFs, initiative images) — never commit these
 /uploads
+
+# Firebase service account key — secret, never commit
+/secrets

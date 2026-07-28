@@ -6,6 +6,7 @@ import type { ComplaintDetails } from "@/types/complaint-details";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RejectComplaintDialog } from "./RejectComplaintDialog";
+import { DismissComplaintDialog } from "./DismissComplaintDialog";
 import { HearingScheduleForm, type HearingFormData } from "./HearingScheduleForm";
 import { HearingInfoCard } from "./HearingInfoCard";
 import {
@@ -29,11 +30,12 @@ export function ComplaintDecisionPanel({ complaint }: ComplaintDecisionPanelProp
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const [isDismissOpen, setIsDismissOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [nextHearingChoice, setNextHearingChoice] = useState<"interim" | "final" | null>(null);
 
-  const { id, status, rejectionReason, hearings, verdictFile, assignedOfficer } = complaint;
+  const { id, status, rejectionReason, dismissalReason, hearings, verdictFile, assignedOfficer } = complaint;
   const hasFinalHearing = hearings.some((h) => h.isFinal);
 
   return (
@@ -73,6 +75,17 @@ export function ComplaintDecisionPanel({ complaint }: ComplaintDecisionPanelProp
         </Card>
       )}
 
+      {status === "DISMISSED" && dismissalReason && (
+        <Card className="border-l-4 border-l-slate-500">
+          <CardHeader>
+            <CardTitle>Reason for Dismissal</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="leading-7 text-muted-foreground">{dismissalReason}</p>
+          </CardContent>
+        </Card>
+      )}
+
       {status === "ACCEPTED" && hearings.length === 0 && (
         <HearingScheduleForm
           title="Schedule Hearing"
@@ -102,6 +115,9 @@ export function ComplaintDecisionPanel({ complaint }: ComplaintDecisionPanelProp
               </Button>
               <Button onClick={() => setNextHearingChoice("final")}>
                 Schedule Final Hearing
+              </Button>
+              <Button variant="destructive" onClick={() => setIsDismissOpen(true)}>
+                Dismiss Complaint
               </Button>
             </CardContent>
           </Card>
@@ -198,6 +214,7 @@ export function ComplaintDecisionPanel({ complaint }: ComplaintDecisionPanelProp
       )}
 
       <RejectComplaintDialog open={isRejectOpen} onOpenChange={setIsRejectOpen} ticketId={id} />
+      <DismissComplaintDialog open={isDismissOpen} onOpenChange={setIsDismissOpen} ticketId={id} />
     </div>
   );
 }

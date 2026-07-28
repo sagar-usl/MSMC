@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import AppShell from "@/components/layouts/AppShell";
 import { getCurrentUser } from "@/lib/auth";
+import { listActiveOfficerNames } from "@/lib/officers";
+import { OfficersProvider } from "@/components/providers/OfficersProvider";
+import { NotificationRegistrar } from "@/components/providers/NotificationRegistrar";
 
 // Belt-and-suspenders: proxy.ts already gates these routes at the network
 // edge, but Server Actions bypass proxy matchers if a route is ever
@@ -15,5 +18,12 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  return <AppShell userName={user.name ?? user.email ?? "Officer"}>{children}</AppShell>;
+  const officers = await listActiveOfficerNames();
+
+  return (
+    <OfficersProvider officers={officers}>
+      <NotificationRegistrar />
+      <AppShell userName={user.name ?? user.email ?? "Officer"}>{children}</AppShell>
+    </OfficersProvider>
+  );
 }

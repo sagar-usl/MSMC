@@ -16,7 +16,18 @@ export function DocumentTableRow({ document }: DocumentTableRowProps) {
       </TableCell>
       <TableCell>{documentCategoryLabels[document.category]}</TableCell>
       <TableCell>
-        {document.filePath ?? <span className="text-muted-foreground">Not set</span>}
+        {document.filePath ? (
+          <a
+            href={`/api/v1/uploads/content-document/${encodeURIComponent(document.filePath)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline underline-offset-4"
+          >
+            View PDF
+          </a>
+        ) : (
+          <span className="text-muted-foreground">Not set</span>
+        )}
       </TableCell>
       <TableCell>
         <DocumentRowActions document={document} />

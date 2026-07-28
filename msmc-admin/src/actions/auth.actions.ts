@@ -1,14 +1,21 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createSession, clearSession, verifyPassword } from "@/lib/auth";
+import { isRateLimited, clientIpFromHeaders } from "@/lib/rate-limit";
 
 export interface LoginState {
   error?: string;
 }
 
 export async function login(_prevState: LoginState, formData: FormData): Promise<LoginState> {
+  const ip = clientIpFromHeaders(await headers());
+  if (isRateLimited(`login:${ip}`, 5, 15 * 60 * 1000)) {
+    return { error: "Too many login attempts. Please try again in a few minutes." };
+  }
+
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 

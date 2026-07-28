@@ -6,7 +6,7 @@ export function OPTIONS() { return corsOptions(); }
 
 export async function GET() {
   try {
-    const items = await prisma.educationItem.findMany({
+    const rows = await prisma.educationItem.findMany({
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       select: {
         id: true,
@@ -14,8 +14,13 @@ export async function GET() {
         titleMr: true,
         descEn: true,
         descMr: true,
+        filePath: true,
       },
     });
+    const items = rows.map(({ filePath, ...rest }) => ({
+      ...rest,
+      fileUrl: filePath ? `/api/v1/uploads/content-document/${encodeURIComponent(filePath)}` : null,
+    }));
     return corsJson({ items });
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { ComplaintCategory, HearingKind } from "@/generated/prisma/client";
 import type { Complaint } from "@/types/complaint";
 import type { ComplaintDetails } from "@/types/complaint-details";
+import { notifyCitizen, notifyOfficers } from "@/lib/push-notifications";
 
 // Dash-separated (not slash-separated): this string is also used as a URL
 // path segment (admin dashboard routes, /api/v1/complaints/:ticketId), and a
@@ -49,6 +50,8 @@ export async function createComplaint(input: {
   await prisma.complaintStatusHistory.create({
     data: { complaint: { connect: { ticketId } }, status: "UNDER_REVIEW" },
   });
+
+  await notifyOfficers("New complaint filed", `${input.fullName} filed a new complaint (${ticketId})`);
 
   return { ticketId };
 }
@@ -122,6 +125,7 @@ function toDetails(
       fileUrl: `/api/v1/uploads/complaint-attachment/${encodeURIComponent(a.filePath)}?mobile=${encodeURIComponent(row.mobile)}&ticket=${encodeURIComponent(row.ticketId)}`,
     })),
     rejectionReason: row.rejectionReason,
+    dismissalReason: row.dismissalReason,
     verdictFile: row.verdictFilePath,
     hearings: row.hearings.map((h) => ({
       date: h.scheduledDate.toISOString().slice(0, 10),
@@ -159,25 +163,26 @@ async function recordStatus(complaintId: string, status: string, opts: { note?: 
   });
 }
 
-async function getIdByTicket(ticketId: string): Promise<string> {
-  const row = await prisma.complaint.findUniqueOrThrow({ where: { ticketId }, select: { id: true } });
-  return row.id;
+async function getRefByTicket(ticketId: string): Promise<{ id: string; mobile: string }> {
+  return prisma.complaint.findUniqueOrThrow({ where: { ticketId }, select: { id: true, mobile: true } });
 }
 
 export async function acceptComplaint(ticketId: string, officerId: string) {
-  const id = await getIdByTicket(ticketId);
+  const { id, mobile } = await getRefByTicket(ticketId);
   await prisma.complaint.update({ where: { id }, data: { status: "ACCEPTED" } });
   await recordStatus(id, "ACCEPTED", { changedById: officerId });
+  await notifyCitizen(mobile, "Complaint accepted", `Your complaint ${ticketId} has been accepted.`);
 }
 
 export async function rejectComplaint(ticketId: string, reason: string, officerId: string) {
-  const id = await getIdByTicket(ticketId);
+  const { id, mobile } = await getRefByTicket(ticketId);
   await prisma.complaint.update({ where: { id }, data: { status: "REJECTED", rejectionReason: reason } });
   await recordStatus(id, "REJECTED", { note: reason, changedById: officerId });
+  await notifyCitizen(mobile, "Complaint rejected", `Your complaint ${ticketId} was rejected: ${reason}`);
 }
 
 export async function assignOfficerName(ticketId: string, officerName: string) {
-  const id = await getIdByTicket(ticketId);
+  const { id } = await getRefByTicket(ticketId);
   await prisma.complaint.update({ where: { id }, data: { assignedOfficerName: officerName } });
 }
 
@@ -187,7 +192,7 @@ export async function scheduleHearing(
   data: { date: string; time: string; location: string; officerName: string },
   officerId: string
 ) {
-  const id = await getIdByTicket(ticketId);
+  const { id, mobile } = await getRefByTicket(ticketId);
   await prisma.hearing.create({
     data: {
       complaintId: id,
@@ -202,10 +207,28 @@ export async function scheduleHearing(
   const nextStatus = kind === "INTERIM" ? "CASE_ONBOARD" : "FINAL_HEARING_SCHEDULED";
   await prisma.complaint.update({ where: { id }, data: { status: nextStatus } });
   await recordStatus(id, nextStatus, { changedById: officerId });
+  await notifyCitizen(
+    mobile,
+    "Hearing scheduled",
+    `A hearing for complaint ${ticketId} is scheduled on ${data.date} at ${data.time}, ${data.location}.`
+  );
+}
+
+/**
+ * Officer can dismiss a complaint mid-hearings (between the first and final
+ * hearing) instead of continuing to a final hearing/verdict. A reason is
+ * required and is shared with the citizen via push notification.
+ */
+export async function dismissComplaint(ticketId: string, reason: string, officerId: string) {
+  const { id, mobile } = await getRefByTicket(ticketId);
+  await prisma.complaint.update({ where: { id }, data: { status: "DISMISSED", dismissalReason: reason } });
+  await recordStatus(id, "DISMISSED", { note: reason, changedById: officerId });
+  await notifyCitizen(mobile, "Complaint dismissed", `Your complaint ${ticketId} was dismissed: ${reason}`);
 }
 
 export async function uploadVerdict(ticketId: string, fileName: string, officerId: string) {
-  const id = await getIdByTicket(ticketId);
+  const { id, mobile } = await getRefByTicket(ticketId);
   await prisma.complaint.update({ where: { id }, data: { status: "DISPOSED_OF", verdictFilePath: fileName } });
   await recordStatus(id, "DISPOSED_OF", { changedById: officerId });
+  await notifyCitizen(mobile, "Case disposed", `Your complaint ${ticketId} has been disposed of. The verdict is now available.`);
 }

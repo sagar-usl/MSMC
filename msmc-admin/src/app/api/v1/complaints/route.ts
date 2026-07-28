@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createComplaint, listComplaintsForCitizen } from "@/lib/complaints";
 import { corsJson, corsOptions } from "@/lib/api-cors";
+import { isRateLimited, clientIpFromHeaders } from "@/lib/rate-limit";
 import type { ComplaintCategory } from "@/generated/prisma/client";
 
 const VALID_CATEGORIES: ComplaintCategory[] = [
@@ -40,6 +41,11 @@ const MAX_ATTACHMENTS = 5;
  * Returns: { ticketId }
  */
 export async function POST(request: NextRequest) {
+  const ip = clientIpFromHeaders(request.headers);
+  if (isRateLimited(`complaint:${ip}`, 5, 15 * 60 * 1000)) {
+    return corsJson({ error: "Too many complaints submitted. Please try again later." }, { status: 429 });
+  }
+
   const body = await request.json().catch(() => null);
   if (!body) {
     return corsJson({ error: "Invalid JSON body" }, { status: 400 });

@@ -6,6 +6,7 @@ export interface EducationItemInput {
   titleMr: string;
   descEn?: string;
   descMr?: string;
+  filePath?: string;
 }
 
 export function listEducationItems() {

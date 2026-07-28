@@ -13,17 +13,17 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import type { Initiative } from "@/generated/prisma/client";
-import type { InitiativeInput } from "@/lib/initiatives";
+import { X } from "lucide-react";
+import type { InitiativeInput, InitiativeWithImages } from "@/lib/initiatives";
 
 interface InitiativeFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initial?: Initiative;
+  initial?: InitiativeWithImages;
   onSubmit: (input: InitiativeInput) => Promise<void>;
 }
 
-function toForm(item?: Initiative): InitiativeInput {
+function toForm(item?: InitiativeWithImages): InitiativeInput {
   return {
     titleEn: item?.titleEn ?? "",
     titleMr: item?.titleMr ?? "",
@@ -31,9 +31,11 @@ function toForm(item?: Initiative): InitiativeInput {
     districtMr: item?.districtMr ?? "",
     descriptionEn: item?.descriptionEn ?? "",
     descriptionMr: item?.descriptionMr ?? "",
-    imagePath: item?.imagePath ?? "",
+    images: item?.images.map((i) => i.imagePath) ?? [],
   };
 }
+
+const MAX_IMAGES = 8;
 
 export function InitiativeFormDialog({ open, onOpenChange, initial, onSubmit }: InitiativeFormDialogProps) {
   const [form, setForm] = useState<InitiativeInput>(() => toForm(initial));
@@ -50,23 +52,33 @@ export function InitiativeFormDialog({ open, onOpenChange, initial, onSubmit }: 
     onOpenChange(nextOpen);
   };
 
-  const isComplete = form.titleEn.trim() && form.titleMr.trim() && form.districtEn.trim() && form.districtMr.trim();
+  const bothOrNeither = (en?: string, mr?: string) => !!en?.trim() === !!mr?.trim();
+  const isComplete =
+    form.titleEn.trim() &&
+    form.titleMr.trim() &&
+    form.districtEn.trim() &&
+    form.districtMr.trim() &&
+    bothOrNeither(form.descriptionEn, form.descriptionMr);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files ?? []).slice(0, MAX_IMAGES - form.images.length);
+    if (files.length === 0) return;
     setIsUploading(true);
     setError(null);
     try {
-      const fd = new FormData();
-      fd.append("image", file);
-      const res = await fetch("/api/uploads/initiative-image", { method: "POST", body: fd });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({})) as { error?: string };
-        throw new Error(j.error ?? "Upload failed");
+      const uploaded: string[] = [];
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append("image", file);
+        const res = await fetch("/api/uploads/initiative-image", { method: "POST", body: fd });
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(j.error ?? "Upload failed");
+        }
+        const { url } = (await res.json()) as { url: string };
+        uploaded.push(url);
       }
-      const { url } = await res.json() as { url: string };
-      setForm((f) => ({ ...f, imagePath: url }));
+      setForm((f) => ({ ...f, images: [...f.images, ...uploaded] }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Image upload failed.");
     } finally {
@@ -75,9 +87,13 @@ export function InitiativeFormDialog({ open, onOpenChange, initial, onSubmit }: 
     }
   };
 
+  const removeImage = (index: number) => {
+    setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== index) }));
+  };
+
   const handleSubmit = () => {
     if (!isComplete) {
-      setError("Title and district are required in both languages.");
+      setError("Title and district are required in both languages. Description must be filled in both languages or left blank in both.");
       return;
     }
     setError(null);
@@ -155,33 +171,44 @@ export function InitiativeFormDialog({ open, onOpenChange, initial, onSubmit }: 
           </div>
 
           <div className="space-y-2">
-            <Label>Initiative Image</Label>
-            <div className="flex items-center gap-3">
+            <Label>Initiative Images ({form.images.length}/{MAX_IMAGES})</Label>
+            {form.images.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {form.images.map((imagePath, index) => (
+                  <div key={imagePath} className="group relative h-16 w-24 shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imagePath}
+                      alt={`Preview ${index + 1}`}
+                      className="h-full w-full rounded-md border object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {form.images.length < MAX_IMAGES && (
               <label
                 htmlFor="init-image-upload"
-                className="cursor-pointer rounded-md border border-dashed border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-600 transition hover:border-slate-400 hover:bg-slate-100"
+                className="flex cursor-pointer items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-600 transition hover:border-slate-400 hover:bg-slate-100"
               >
-                {isUploading ? "Uploading…" : "Upload Image"}
+                {isUploading ? "Uploading…" : "Upload Image(s)"}
                 <input
                   id="init-image-upload"
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
+                  multiple
                   className="hidden"
                   onChange={handleImageUpload}
                   disabled={isUploading}
                 />
               </label>
-              {form.imagePath && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={form.imagePath}
-                  alt="Preview"
-                  className="h-12 w-20 rounded-md border object-cover"
-                />
-              )}
-            </div>
-            {form.imagePath && (
-              <p className="truncate text-xs text-muted-foreground">{form.imagePath}</p>
             )}
           </div>
 

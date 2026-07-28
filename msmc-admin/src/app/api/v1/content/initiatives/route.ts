@@ -6,7 +6,7 @@ export function OPTIONS() { return corsOptions(); }
 
 export async function GET() {
   try {
-    const items = await prisma.initiative.findMany({
+    const rows = await prisma.initiative.findMany({
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       select: {
         id: true,
@@ -16,9 +16,13 @@ export async function GET() {
         districtMr: true,
         descriptionEn: true,
         descriptionMr: true,
-        imagePath: true,
+        images: { orderBy: { sortOrder: "asc" }, select: { imagePath: true } },
       },
     });
+    const items = rows.map(({ images, ...rest }) => ({
+      ...rest,
+      images: images.map((i) => i.imagePath),
+    }));
     return corsJson({ items });
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

@@ -25,6 +25,7 @@ export interface ComplaintDetails {
   assignedOfficer: string | null;
   documents: ComplaintDocument[];
   rejectionReason: string | null;
+  dismissalReason: string | null;
   hearings: HearingInfo[];
   verdictFile: string | null;
 }

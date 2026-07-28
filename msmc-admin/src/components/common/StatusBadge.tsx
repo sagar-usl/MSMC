@@ -7,6 +7,7 @@ const badgeVariants: Record<ComplaintStatus, string> = {
   CASE_ONBOARD: "bg-blue-100 text-blue-800 border-blue-200",
   FINAL_HEARING_SCHEDULED: "bg-indigo-100 text-indigo-800 border-indigo-200",
   DISPOSED_OF: "bg-green-100 text-green-800 border-green-200",
+  DISMISSED: "bg-slate-200 text-slate-800 border-slate-300",
 };
 
 const statusLabels: Record<ComplaintStatus, string> = {
@@ -16,6 +17,7 @@ const statusLabels: Record<ComplaintStatus, string> = {
   CASE_ONBOARD: "Case Onboard",
   FINAL_HEARING_SCHEDULED: "Final Hearing Scheduled",
   DISPOSED_OF: "Disposed Of",
+  DISMISSED: "Dismissed",
 };
 
 interface StatusBadgeProps {

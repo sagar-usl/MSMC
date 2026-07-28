@@ -7,10 +7,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { InitiativeRowActions } from "./InitiativeRowActions";
-import type { Initiative } from "@/generated/prisma/client";
+import type { InitiativeWithImages } from "@/lib/initiatives";
 
 interface InitiativeTableProps {
-  initiatives: Initiative[];
+  initiatives: InitiativeWithImages[];
 }
 
 export function InitiativeTable({ initiatives }: InitiativeTableProps) {
@@ -24,6 +24,7 @@ export function InitiativeTable({ initiatives }: InitiativeTableProps) {
         <TableRow>
           <TableHead>Title</TableHead>
           <TableHead>District</TableHead>
+          <TableHead>Images</TableHead>
           <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -36,6 +37,13 @@ export function InitiativeTable({ initiatives }: InitiativeTableProps) {
               <div className="text-sm text-muted-foreground">{initiative.titleMr}</div>
             </TableCell>
             <TableCell>{initiative.districtEn}</TableCell>
+            <TableCell>
+              {initiative.images.length > 0 ? (
+                `${initiative.images.length} image${initiative.images.length > 1 ? "s" : ""}`
+              ) : (
+                <span className="text-muted-foreground">None</span>
+              )}
+            </TableCell>
             <TableCell>
               <InitiativeRowActions initiative={initiative} />
             </TableCell>

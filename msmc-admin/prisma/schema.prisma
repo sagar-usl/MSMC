@@ -27,6 +27,7 @@ enum ComplaintStatus {
   CASE_ONBOARD
   FINAL_HEARING_SCHEDULED
   DISPOSED_OF
+  DISMISSED
 }
 
 // INTERIM covers every non-final hearing (first, second, third...) — a case
@@ -63,8 +64,21 @@ model User {
   assignedComplaints Complaint[]              @relation("AssignedOfficer")
   statusChanges      ComplaintStatusHistory[]
   feedback           Feedback[]
+  deviceTokens       DeviceToken[]
 
   @@map("users")
+}
+
+model DeviceToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  platform  String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("device_tokens")
 }
 
 model Complaint {
@@ -78,12 +92,14 @@ model Complaint {
   description       String
   status            ComplaintStatus @default(UNDER_REVIEW)
   rejectionReason   String?
+  dismissalReason   String?
   verdictFilePath   String?
   assignedOfficer   User?     @relation("AssignedOfficer", fields: [assignedOfficerId], references: [id])
   assignedOfficerId String?
-  // Free-text display name from the "Assign Officer" picker (constants/officers.ts) —
-  // distinct from assignedOfficerId, which tracks which logged-in account actually
-  // performed accept/reject/hearing/verdict actions for status-history attribution.
+  // Free-text display name from the "Assign Officer" picker (lib/officers.ts,
+  // active User accounts with role OFFICER) — distinct from assignedOfficerId,
+  // which tracks which logged-in account actually performed accept/reject/
+  // hearing/verdict actions for status-history attribution.
   assignedOfficerName String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -169,6 +185,7 @@ model EducationItem {
   titleMr   String
   descEn    String?
   descMr    String?
+  filePath  String?
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -184,12 +201,24 @@ model Initiative {
   districtMr    String
   descriptionEn String?
   descriptionMr String?
-  imagePath     String?
   sortOrder     Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  images InitiativeImage[]
+
   @@map("initiatives")
+}
+
+model InitiativeImage {
+  id           String     @id @default(uuid())
+  initiative   Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  initiativeId String
+  imagePath    String
+  sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+
+  @@map("initiative_images")
 }
 
 model NewsItem {

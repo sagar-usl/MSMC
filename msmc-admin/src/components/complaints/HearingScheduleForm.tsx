@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { OFFICERS } from "@/constants/officers";
+import { useOfficers } from "@/components/providers/OfficersProvider";
 
 export interface HearingFormData {
   date: string;
@@ -30,6 +30,7 @@ interface HearingScheduleFormProps {
 }
 
 export function HearingScheduleForm({ title, submitLabel, defaultOfficer, onSubmit }: HearingScheduleFormProps) {
+  const officers = useOfficers();
   const [data, setData] = useState<HearingFormData>({
     date: "",
     time: "",
@@ -101,7 +102,7 @@ export function HearingScheduleForm({ title, submitLabel, defaultOfficer, onSubm
               <SelectValue placeholder="Select an officer" />
             </SelectTrigger>
             <SelectContent>
-              {OFFICERS.map((officer) => (
+              {officers.map((officer) => (
                 <SelectItem key={officer} value={officer}>
                   {officer}
                 </SelectItem>

@@ -41,6 +41,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         submittedAt: complaint.submittedAt,
         assignedOfficer: complaint.assignedOfficer,
         rejectionReason: complaint.rejectionReason,
+        dismissalReason: complaint.dismissalReason,
         hearings: complaint.hearings,
         documents: complaint.documents,
         verdictDownloadUrl,

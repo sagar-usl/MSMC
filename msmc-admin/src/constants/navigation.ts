@@ -29,7 +29,7 @@ export const NAVIGATION = [
   },
 
   {
-    title: "Education",
+    title: "Education & Scholarship",
     href: "/education",
     icon: GraduationCap,
   },

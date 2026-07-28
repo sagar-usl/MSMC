@@ -24,6 +24,7 @@ export function EducationTable({ items }: EducationTableProps) {
         <TableRow>
           <TableHead>Title</TableHead>
           <TableHead>Description</TableHead>
+          <TableHead>Document</TableHead>
           <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -36,6 +37,20 @@ export function EducationTable({ items }: EducationTableProps) {
               <div className="text-sm text-muted-foreground">{item.titleMr}</div>
             </TableCell>
             <TableCell>{item.descEn}</TableCell>
+            <TableCell>
+              {item.filePath ? (
+                <a
+                  href={`/api/v1/uploads/content-document/${encodeURIComponent(item.filePath)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-4"
+                >
+                  View PDF
+                </a>
+              ) : (
+                <span className="text-muted-foreground">Not set</span>
+              )}
+            </TableCell>
             <TableCell>
               <EducationItemRowActions item={item} />
             </TableCell>

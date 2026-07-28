@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { notifyOfficers } from "@/lib/push-notifications";
 
 export async function createFeedback(input: { rating: number; name?: string; message: string }) {
   if (input.rating < 1 || input.rating > 5) {
@@ -12,4 +13,7 @@ export async function createFeedback(input: { rating: number; name?: string; mes
   await prisma.feedback.create({
     data: { rating: input.rating, name: input.name, message: input.message.trim() },
   });
+
+  const from = input.name?.trim() || "A citizen";
+  await notifyOfficers("New feedback received", `${from} rated ${input.rating}/5: ${input.message.trim()}`);
 }

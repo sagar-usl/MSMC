@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { OFFICERS } from "@/constants/officers";
+import { useOfficers } from "@/components/providers/OfficersProvider";
 
 interface AssignOfficerDialogProps {
   open: boolean;
@@ -32,6 +32,7 @@ export function AssignOfficerDialog({
   currentOfficer,
   onAssign,
 }: AssignOfficerDialogProps) {
+  const officers = useOfficers();
   const [selectedOfficer, setSelectedOfficer] = useState<string | null>(
     currentOfficer
   );
@@ -64,13 +65,19 @@ export function AssignOfficerDialog({
             <SelectValue placeholder="Select an officer" />
           </SelectTrigger>
           <SelectContent>
-            {OFFICERS.map((officer) => (
+            {officers.map((officer) => (
               <SelectItem key={officer} value={officer}>
                 {officer}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+
+        {officers.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            No active officers yet — add one from the Users page first.
+          </p>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

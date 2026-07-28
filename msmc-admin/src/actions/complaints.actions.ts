@@ -19,6 +19,14 @@ export async function rejectComplaintAction(ticketId: string, reason: string) {
   revalidatePath("/dashboard");
 }
 
+export async function dismissComplaintAction(ticketId: string, reason: string) {
+  const officer = await requireOfficer();
+  if (!reason.trim()) throw new Error("A dismissal reason is required.");
+  await complaints.dismissComplaint(ticketId, reason.trim(), officer.id);
+  revalidatePath(`/complaints/${ticketId}`);
+  revalidatePath("/dashboard");
+}
+
 export async function assignOfficerAction(ticketId: string, officerName: string) {
   await requireOfficer();
   await complaints.assignOfficerName(ticketId, officerName);

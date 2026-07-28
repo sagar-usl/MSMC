@@ -10,8 +10,8 @@ export default async function EducationPage() {
   return (
     <div>
       <PageHeader
-        title="Education"
-        description="Scholarship and education schemes shown in the citizen app's Education screen."
+        title="Education & Scholarship"
+        description="Scholarship and education schemes shown in the citizen app's Education & Scholarship screen."
         action={<AddEducationItemButton />}
       />
 

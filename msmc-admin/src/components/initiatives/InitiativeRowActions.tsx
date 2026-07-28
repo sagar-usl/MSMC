@@ -12,10 +12,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { InitiativeFormDialog } from "./InitiativeFormDialog";
 import { updateInitiativeAction, deleteInitiativeAction } from "@/actions/initiatives.actions";
-import type { Initiative } from "@/generated/prisma/client";
+import type { InitiativeWithImages } from "@/lib/initiatives";
 
 interface InitiativeRowActionsProps {
-  initiative: Initiative;
+  initiative: InitiativeWithImages;
 }
 
 export function InitiativeRowActions({ initiative }: InitiativeRowActionsProps) {

@@ -46,6 +46,7 @@ export function DocumentFormDialog({ open, onOpenChange, initial, onSubmit }: Do
   const [form, setForm] = useState<DocumentInput>(() => toForm(initial));
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isUploading, setIsUploading] = useState(false);
   const router = useRouter();
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -56,11 +57,40 @@ export function DocumentFormDialog({ open, onOpenChange, initial, onSubmit }: Do
     onOpenChange(nextOpen);
   };
 
-  const isComplete = form.titleEn.trim() && form.titleMr.trim();
+  // Bilingual fields are all-or-nothing: both languages or neither, never
+  // English-only or Marathi-only.
+  const bothOrNeither = (en?: string, mr?: string) => !!en?.trim() === !!mr?.trim();
+  const isComplete =
+    form.titleEn.trim() &&
+    form.titleMr.trim() &&
+    bothOrNeither(form.metaEn, form.metaMr);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/uploads/content-document", { method: "POST", body: fd });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(j.error ?? "Upload failed");
+      }
+      const { filePath } = (await res.json()) as { filePath: string };
+      setForm((f) => ({ ...f, filePath }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "File upload failed.");
+    } finally {
+      setIsUploading(false);
+      e.target.value = "";
+    }
+  };
 
   const handleSubmit = () => {
     if (!isComplete) {
-      setError("Both English and Marathi titles are required.");
+      setError("Title is required in both languages. Meta must be filled in both languages or left blank in both.");
       return;
     }
     setError(null);
@@ -140,13 +170,24 @@ export function DocumentFormDialog({ open, onOpenChange, initial, onSubmit }: Do
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="doc-file-path">File Name</Label>
-              <Input
-                id="doc-file-path"
-                placeholder="annual-report-2024-25.pdf"
-                value={form.filePath}
-                onChange={(e) => setForm((f) => ({ ...f, filePath: e.target.value }))}
-              />
+              <Label>PDF File</Label>
+              <label
+                htmlFor="doc-file-upload"
+                className="flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-input px-3 py-1.5 text-sm text-muted-foreground transition hover:border-ring hover:text-foreground"
+              >
+                {isUploading ? "Uploading…" : form.filePath ? "Replace PDF" : "Upload PDF"}
+                <input
+                  id="doc-file-upload"
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  disabled={isUploading}
+                />
+              </label>
+              {form.filePath && (
+                <p className="truncate text-xs text-muted-foreground">{form.filePath}</p>
+              )}
             </div>
           </div>
 
@@ -157,7 +198,7 @@ export function DocumentFormDialog({ open, onOpenChange, initial, onSubmit }: Do
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isPending}>
+          <Button onClick={handleSubmit} disabled={isPending || isUploading}>
             {isPending ? "Saving…" : initial ? "Save Changes" : "Add Document"}
           </Button>
         </DialogFooter>
