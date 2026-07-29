@@ -64,21 +64,48 @@ export async function getCurrentUser(): Promise<User | null> {
   return prisma.user.findUnique({ where: { id: userId } });
 }
 
-/** For Route Handlers: returns the officer, or null if the caller isn't one. */
+/**
+ * For Route Handlers: returns the logged-in staff account (officer or the
+ * master admin), or null if the caller isn't one. Named "Officer" for the
+ * admin-panel-access check — MASTER_ADMIN is a superset of that access, not
+ * a separate portal.
+ */
 export async function getCurrentOfficer(): Promise<User | null> {
   const user = await getCurrentUser();
-  return user && user.role === "OFFICER" ? user : null;
+  return user && (user.role === "OFFICER" || user.role === "MASTER_ADMIN") ? user : null;
 }
 
 /**
- * For Server Actions: re-verifies the caller is a logged-in officer instead
+ * For Server Actions: re-verifies the caller is logged in as staff instead
  * of trusting proxy.ts alone (Server Actions are separate POST requests that
  * can bypass proxy.ts route matchers if a route is ever moved).
  */
 export async function requireOfficer(): Promise<User> {
   const user = await getCurrentUser();
-  if (!user || user.role !== "OFFICER") {
+  if (!user || (user.role !== "OFFICER" && user.role !== "MASTER_ADMIN")) {
     redirect("/login");
+  }
+  return user;
+}
+
+/** For Route Handlers: returns the master admin, or null if the caller isn't one. */
+export async function getCurrentMasterAdmin(): Promise<User | null> {
+  const user = await getCurrentUser();
+  return user && user.role === "MASTER_ADMIN" ? user : null;
+}
+
+/**
+ * For Server Actions restricted to the master admin (assigning officers).
+ * Distinguishes "not logged in" (send to login) from "logged in but not
+ * authorized for this" (throw — the caller IS a valid officer, just not
+ * allowed to do this specific thing, so redirecting to /login would be the
+ * wrong signal).
+ */
+export async function requireMasterAdmin(): Promise<User> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (user.role !== "MASTER_ADMIN") {
+    throw new Error("Only the master admin can perform this action.");
   }
   return user;
 }

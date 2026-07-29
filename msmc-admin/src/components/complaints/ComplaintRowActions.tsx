@@ -15,6 +15,7 @@ import {
 import { AssignOfficerDialog } from "./AssignOfficerDialog";
 import { RejectComplaintDialog } from "./RejectComplaintDialog";
 import { acceptComplaintAction, assignOfficerAction } from "@/actions/complaints.actions";
+import { useCurrentUser } from "@/components/providers/CurrentUserProvider";
 
 interface ComplaintRowActionsProps {
   complaint: Complaint;
@@ -22,11 +23,14 @@ interface ComplaintRowActionsProps {
 
 export function ComplaintRowActions({ complaint }: ComplaintRowActionsProps) {
   const router = useRouter();
+  const currentUser = useCurrentUser();
   const [isPending, startTransition] = useTransition();
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
 
-  const canDecide = complaint.status === "UNDER_REVIEW";
+  const isMasterAdmin = currentUser.role === "MASTER_ADMIN";
+  const canAct = isMasterAdmin || complaint.assignedOfficerId === currentUser.id;
+  const canDecide = canAct && complaint.status === "UNDER_REVIEW";
 
   return (
     <>
@@ -66,26 +70,32 @@ export function ComplaintRowActions({ complaint }: ComplaintRowActionsProps) {
             </>
           )}
 
-          <DropdownMenuSeparator />
+          {isMasterAdmin && (
+            <>
+              <DropdownMenuSeparator />
 
-          <DropdownMenuItem onClick={() => setIsAssignDialogOpen(true)}>
-            <UserPlus />
-            Assign Officer
-          </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsAssignDialogOpen(true)}>
+                <UserPlus />
+                Assign Officer
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <AssignOfficerDialog
-        open={isAssignDialogOpen}
-        onOpenChange={setIsAssignDialogOpen}
-        currentOfficer={complaint.assignedOfficer}
-        onAssign={(officer) =>
-          startTransition(async () => {
-            await assignOfficerAction(complaint.id, officer);
-            router.refresh();
-          })
-        }
-      />
+      {isMasterAdmin && (
+        <AssignOfficerDialog
+          open={isAssignDialogOpen}
+          onOpenChange={setIsAssignDialogOpen}
+          currentOfficerId={complaint.assignedOfficerId}
+          onAssign={(officerId) =>
+            startTransition(async () => {
+              await assignOfficerAction(complaint.id, officerId);
+              router.refresh();
+            })
+          }
+        />
+      )}
 
       <RejectComplaintDialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen} ticketId={complaint.id} />
     </>

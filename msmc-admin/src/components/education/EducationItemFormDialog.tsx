@@ -33,20 +33,33 @@ function toForm(item?: EducationItem): EducationItemInput {
   };
 }
 
+// Only mounts the body while open, so a Cancel (which never reset the form
+// before) can't leave stale data behind for the next time this dialog
+// opens — a fresh mount always starts correct via useState's initializer.
 export function EducationItemFormDialog({ open, onOpenChange, initial, onSubmit }: EducationItemFormDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        {open && (
+          <EducationItemFormBody initial={initial} onSubmit={onSubmit} onClose={() => onOpenChange(false)} />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface EducationItemFormBodyProps {
+  initial?: EducationItem;
+  onSubmit: (input: EducationItemInput) => Promise<void>;
+  onClose: () => void;
+}
+
+function EducationItemFormBody({ initial, onSubmit, onClose }: EducationItemFormBodyProps) {
   const [form, setForm] = useState<EducationItemInput>(() => toForm(initial));
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isUploading, setIsUploading] = useState(false);
   const router = useRouter();
-
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (nextOpen) {
-      setForm(toForm(initial));
-      setError(null);
-    }
-    onOpenChange(nextOpen);
-  };
 
   const bothOrNeither = (en?: string, mr?: string) => !!en?.trim() === !!mr?.trim();
   const isComplete =
@@ -85,91 +98,89 @@ export function EducationItemFormDialog({ open, onOpenChange, initial, onSubmit 
     setError(null);
     startTransition(async () => {
       await onSubmit(form);
-      onOpenChange(false);
+      onClose();
       router.refresh();
     });
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{initial ? "Edit Education Item" : "Add Education Item"}</DialogTitle>
-          <DialogDescription>Shown in the citizen app&apos;s Education screen.</DialogDescription>
-        </DialogHeader>
+    <>
+      <DialogHeader>
+        <DialogTitle>{initial ? "Edit Education Item" : "Add Education Item"}</DialogTitle>
+        <DialogDescription>Shown in the citizen app&apos;s Education screen.</DialogDescription>
+      </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="edu-title-en">Title (English)</Label>
-              <Input
-                id="edu-title-en"
-                value={form.titleEn}
-                onChange={(e) => setForm((f) => ({ ...f, titleEn: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edu-title-mr">Title (Marathi)</Label>
-              <Input
-                id="edu-title-mr"
-                value={form.titleMr}
-                onChange={(e) => setForm((f) => ({ ...f, titleMr: e.target.value }))}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="edu-desc-en">Description (English)</Label>
-              <Input
-                id="edu-desc-en"
-                value={form.descEn}
-                onChange={(e) => setForm((f) => ({ ...f, descEn: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edu-desc-mr">Description (Marathi)</Label>
-              <Input
-                id="edu-desc-mr"
-                value={form.descMr}
-                onChange={(e) => setForm((f) => ({ ...f, descMr: e.target.value }))}
-              />
-            </div>
-          </div>
-
+      <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
-            <Label>Attached Document (optional)</Label>
-            <label
-              htmlFor="edu-file-upload"
-              className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-dashed border-input px-3 py-1.5 text-sm text-muted-foreground transition hover:border-ring hover:text-foreground"
-            >
-              {isUploading ? "Uploading…" : form.filePath ? "Replace PDF" : "Upload PDF"}
-              <input
-                id="edu-file-upload"
-                type="file"
-                accept="application/pdf"
-                className="hidden"
-                onChange={handleFileUpload}
-                disabled={isUploading}
-              />
-            </label>
-            {form.filePath && (
-              <p className="truncate text-xs text-muted-foreground">{form.filePath}</p>
-            )}
+            <Label htmlFor="edu-title-en">Title (English)</Label>
+            <Input
+              id="edu-title-en"
+              value={form.titleEn}
+              onChange={(e) => setForm((f) => ({ ...f, titleEn: e.target.value }))}
+            />
           </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="space-y-1.5">
+            <Label htmlFor="edu-title-mr">Title (Marathi)</Label>
+            <Input
+              id="edu-title-mr"
+              value={form.titleMr}
+              onChange={(e) => setForm((f) => ({ ...f, titleMr: e.target.value }))}
+            />
+          </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={isPending || isUploading}>
-            {isPending ? "Saving…" : initial ? "Save Changes" : "Add Item"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="edu-desc-en">Description (English)</Label>
+            <Input
+              id="edu-desc-en"
+              value={form.descEn}
+              onChange={(e) => setForm((f) => ({ ...f, descEn: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edu-desc-mr">Description (Marathi)</Label>
+            <Input
+              id="edu-desc-mr"
+              value={form.descMr}
+              onChange={(e) => setForm((f) => ({ ...f, descMr: e.target.value }))}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Attached Document (optional)</Label>
+          <label
+            htmlFor="edu-file-upload"
+            className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-dashed border-input px-3 py-1.5 text-sm text-muted-foreground transition hover:border-ring hover:text-foreground"
+          >
+            {isUploading ? "Uploading…" : form.filePath ? "Replace PDF" : "Upload PDF"}
+            <input
+              id="edu-file-upload"
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={handleFileUpload}
+              disabled={isUploading}
+            />
+          </label>
+          {form.filePath && (
+            <p className="truncate text-xs text-muted-foreground">{form.filePath}</p>
+          )}
+        </div>
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit} disabled={isPending || isUploading}>
+          {isPending ? "Saving…" : initial ? "Save Changes" : "Add Item"}
+        </Button>
+      </DialogFooter>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import type { ComplaintCategory, HearingKind } from "@/generated/prisma/client";
+import type { ComplaintCategory, HearingKind, User } from "@/generated/prisma/client";
 import type { Complaint } from "@/types/complaint";
 import type { ComplaintDetails } from "@/types/complaint-details";
 import { notifyCitizen, notifyOfficers } from "@/lib/push-notifications";
@@ -51,7 +51,7 @@ export async function createComplaint(input: {
     data: { complaint: { connect: { ticketId } }, status: "UNDER_REVIEW" },
   });
 
-  await notifyOfficers("New complaint filed", `${input.fullName} filed a new complaint (${ticketId})`);
+  await notifyOfficers("New complaint filed", `${input.fullName} filed a new complaint (${ticketId})`, ticketId);
 
   return { ticketId };
 }
@@ -73,6 +73,7 @@ const listSelect = {
   status: true,
   createdAt: true,
   assignedOfficerName: true,
+  assignedOfficerId: true,
 } as const;
 
 function toListItem(row: {
@@ -83,6 +84,7 @@ function toListItem(row: {
   status: string;
   createdAt: Date;
   assignedOfficerName: string | null;
+  assignedOfficerId: string | null;
 }): Complaint {
   return {
     id: row.ticketId,
@@ -91,6 +93,7 @@ function toListItem(row: {
     submittedAt: row.createdAt.toISOString().slice(0, 10),
     status: row.status as Complaint["status"],
     assignedOfficer: row.assignedOfficerName,
+    assignedOfficerId: row.assignedOfficerId,
   };
 }
 
@@ -119,6 +122,7 @@ function toDetails(
     submittedAt: row.createdAt.toISOString().slice(0, 10),
     status: row.status as ComplaintDetails["status"],
     assignedOfficer: row.assignedOfficerName,
+    assignedOfficerId: row.assignedOfficerId,
     documents: row.attachments.map((a) => ({
       id: a.id,
       fileName: a.fileName,
@@ -171,19 +175,50 @@ export async function acceptComplaint(ticketId: string, officerId: string) {
   const { id, mobile } = await getRefByTicket(ticketId);
   await prisma.complaint.update({ where: { id }, data: { status: "ACCEPTED" } });
   await recordStatus(id, "ACCEPTED", { changedById: officerId });
-  await notifyCitizen(mobile, "Complaint accepted", `Your complaint ${ticketId} has been accepted.`);
+  await notifyCitizen(mobile, "Complaint accepted", `Your complaint ${ticketId} has been accepted.`, ticketId);
 }
 
 export async function rejectComplaint(ticketId: string, reason: string, officerId: string) {
   const { id, mobile } = await getRefByTicket(ticketId);
   await prisma.complaint.update({ where: { id }, data: { status: "REJECTED", rejectionReason: reason } });
   await recordStatus(id, "REJECTED", { note: reason, changedById: officerId });
-  await notifyCitizen(mobile, "Complaint rejected", `Your complaint ${ticketId} was rejected: ${reason}`);
+  await notifyCitizen(mobile, "Complaint rejected", `Your complaint ${ticketId} was rejected: ${reason}`, ticketId);
 }
 
-export async function assignOfficerName(ticketId: string, officerName: string) {
+/**
+ * Binds the complaint to a real officer account (master-admin-only — see
+ * assignOfficerAction). `assignedOfficerName` is kept alongside as a cached
+ * display label so table/detail views don't need an extra join.
+ */
+export async function assignOfficer(ticketId: string, officerId: string) {
+  const officer = await prisma.user.findUniqueOrThrow({
+    where: { id: officerId },
+    select: { name: true, email: true },
+  });
   const { id } = await getRefByTicket(ticketId);
-  await prisma.complaint.update({ where: { id }, data: { assignedOfficerName: officerName } });
+  await prisma.complaint.update({
+    where: { id },
+    data: { assignedOfficerId: officerId, assignedOfficerName: officer.name ?? officer.email ?? "Unknown" },
+  });
+}
+
+/**
+ * Every mutating complaint action (accept/reject/dismiss/schedule
+ * hearing/upload verdict) funnels through this: the master admin can act on
+ * anything; a regular officer only on a complaint assigned to them.
+ * Complaints with no assigned officer yet can only be acted on by the
+ * master admin — assignment is what hands off control to a specific
+ * officer, so there is always exactly one point of authority at any time.
+ */
+export async function assertCanActOnComplaint(ticketId: string, user: User): Promise<void> {
+  if (user.role === "MASTER_ADMIN") return;
+  const complaint = await prisma.complaint.findUniqueOrThrow({
+    where: { ticketId },
+    select: { assignedOfficerId: true },
+  });
+  if (complaint.assignedOfficerId !== user.id) {
+    throw new Error("Only the assigned officer or the master admin can act on this complaint.");
+  }
 }
 
 export async function scheduleHearing(
@@ -210,7 +245,8 @@ export async function scheduleHearing(
   await notifyCitizen(
     mobile,
     "Hearing scheduled",
-    `A hearing for complaint ${ticketId} is scheduled on ${data.date} at ${data.time}, ${data.location}.`
+    `A hearing for complaint ${ticketId} is scheduled on ${data.date} at ${data.time}, ${data.location}.`,
+    ticketId
   );
 }
 
@@ -223,12 +259,12 @@ export async function dismissComplaint(ticketId: string, reason: string, officer
   const { id, mobile } = await getRefByTicket(ticketId);
   await prisma.complaint.update({ where: { id }, data: { status: "DISMISSED", dismissalReason: reason } });
   await recordStatus(id, "DISMISSED", { note: reason, changedById: officerId });
-  await notifyCitizen(mobile, "Complaint dismissed", `Your complaint ${ticketId} was dismissed: ${reason}`);
+  await notifyCitizen(mobile, "Complaint dismissed", `Your complaint ${ticketId} was dismissed: ${reason}`, ticketId);
 }
 
 export async function uploadVerdict(ticketId: string, fileName: string, officerId: string) {
   const { id, mobile } = await getRefByTicket(ticketId);
   await prisma.complaint.update({ where: { id }, data: { status: "DISPOSED_OF", verdictFilePath: fileName } });
   await recordStatus(id, "DISPOSED_OF", { changedById: officerId });
-  await notifyCitizen(mobile, "Case disposed", `Your complaint ${ticketId} has been disposed of. The verdict is now available.`);
+  await notifyCitizen(mobile, "Case disposed", `Your complaint ${ticketId} has been disposed of. The verdict is now available.`, ticketId);
 }

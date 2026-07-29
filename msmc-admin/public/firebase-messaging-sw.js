@@ -11,3 +11,32 @@ firebase.initializeApp({
 });
 
 firebase.messaging();
+
+// Firebase auto-displays background notifications using the payload's
+// `notification` field, carrying the `data` payload (e.g. ticketId) onto
+// `event.notification.data`. This click handler is what makes that
+// auto-displayed notification actually navigate somewhere — without it,
+// clicking does nothing.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const ticketId = event.notification.data?.ticketId;
+  const targetPath = ticketId ? `/complaints/${encodeURIComponent(ticketId)}` : "/feedback";
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      const targetUrl = new URL(targetPath, self.location.origin).href;
+      for (const client of windowClients) {
+        if (client.url === targetUrl && "focus" in client) {
+          return client.focus();
+        }
+      }
+      for (const client of windowClients) {
+        if ("navigate" in client && "focus" in client) {
+          return client.navigate(targetUrl).then(() => client.focus());
+        }
+      }
+      return clients.openWindow(targetUrl);
+    })
+  );
+});

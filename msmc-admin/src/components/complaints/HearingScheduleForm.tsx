@@ -103,8 +103,8 @@ export function HearingScheduleForm({ title, submitLabel, defaultOfficer, onSubm
             </SelectTrigger>
             <SelectContent>
               {officers.map((officer) => (
-                <SelectItem key={officer} value={officer}>
-                  {officer}
+                <SelectItem key={officer.id} value={officer.name}>
+                  {officer.name}
                 </SelectItem>
               ))}
             </SelectContent>

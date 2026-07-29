@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RejectComplaintDialog } from "./RejectComplaintDialog";
 import { DismissComplaintDialog } from "./DismissComplaintDialog";
+import { AssignOfficerDialog } from "./AssignOfficerDialog";
 import { HearingScheduleForm, type HearingFormData } from "./HearingScheduleForm";
 import { HearingInfoCard } from "./HearingInfoCard";
 import {
@@ -14,7 +15,9 @@ import {
   scheduleInterimHearingAction,
   scheduleFinalHearingAction,
   uploadVerdictAction,
+  assignOfficerAction,
 } from "@/actions/complaints.actions";
+import { useCurrentUser } from "@/components/providers/CurrentUserProvider";
 
 interface ComplaintDecisionPanelProps {
   complaint: ComplaintDetails;
@@ -25,22 +28,62 @@ interface ComplaintDecisionPanelProps {
  * and final hearings, and upload the verdict. Mirrors the citizen (Flutter)
  * app's ComplaintDetailScreen officer actions one-for-one so both surfaces
  * drive the same complaint lifecycle.
+ *
+ * Gated by assignment: the master admin can act on anything; a regular
+ * officer only once this complaint is assigned to them specifically
+ * (assertCanActOnComplaint enforces the same rule server-side — this is
+ * just what keeps the UI honest about what will actually be allowed).
  */
 export function ComplaintDecisionPanel({ complaint }: ComplaintDecisionPanelProps) {
   const router = useRouter();
+  const currentUser = useCurrentUser();
   const [isPending, startTransition] = useTransition();
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [isDismissOpen, setIsDismissOpen] = useState(false);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [nextHearingChoice, setNextHearingChoice] = useState<"interim" | "final" | null>(null);
 
-  const { id, status, rejectionReason, dismissalReason, hearings, verdictFile, assignedOfficer } = complaint;
+  const { id, status, rejectionReason, dismissalReason, hearings, verdictFile, assignedOfficer, assignedOfficerId } = complaint;
   const hasFinalHearing = hearings.some((h) => h.isFinal);
+
+  const isMasterAdmin = currentUser.role === "MASTER_ADMIN";
+  const canAct = isMasterAdmin || assignedOfficerId === currentUser.id;
 
   return (
     <div className="space-y-6">
-      {status === "UNDER_REVIEW" && (
+      {isMasterAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Assignment</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              {assignedOfficer ? (
+                <>Assigned to <span className="font-medium text-foreground">{assignedOfficer}</span></>
+              ) : (
+                "Not yet assigned to an officer."
+              )}
+            </p>
+            <Button variant="outline" onClick={() => setIsAssignOpen(true)}>
+              {assignedOfficer ? "Reassign" : "Assign Officer"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!canAct && (
+        <Card className="border-l-4 border-l-amber-500">
+          <CardContent className="py-4 text-sm text-muted-foreground">
+            {assignedOfficer
+              ? <>This complaint is assigned to <span className="font-medium text-foreground">{assignedOfficer}</span>. Only they or the master admin can act on it.</>
+              : "This complaint hasn't been assigned yet. Only the master admin can act on it until it's assigned to an officer."}
+          </CardContent>
+        </Card>
+      )}
+
+      {canAct && status === "UNDER_REVIEW" && (
         <Card>
           <CardHeader>
             <CardTitle>Officer Decision</CardTitle>
@@ -86,7 +129,7 @@ export function ComplaintDecisionPanel({ complaint }: ComplaintDecisionPanelProp
         </Card>
       )}
 
-      {status === "ACCEPTED" && hearings.length === 0 && (
+      {canAct && status === "ACCEPTED" && hearings.length === 0 && (
         <HearingScheduleForm
           title="Schedule Hearing"
           submitLabel="Save & Schedule Hearing"
@@ -103,7 +146,7 @@ export function ComplaintDecisionPanel({ complaint }: ComplaintDecisionPanelProp
         />
       ))}
 
-      {status === "CASE_ONBOARD" && hearings.length > 0 && !hasFinalHearing && (
+      {canAct && status === "CASE_ONBOARD" && hearings.length > 0 && !hasFinalHearing && (
         nextHearingChoice === null ? (
           <Card>
             <CardHeader>
@@ -154,7 +197,7 @@ export function ComplaintDecisionPanel({ complaint }: ComplaintDecisionPanelProp
         )
       )}
 
-      {status === "FINAL_HEARING_SCHEDULED" && !verdictFile && (
+      {canAct && status === "FINAL_HEARING_SCHEDULED" && !verdictFile && (
         <Card>
           <CardHeader>
             <CardTitle>Upload Verdict</CardTitle>
@@ -215,6 +258,19 @@ export function ComplaintDecisionPanel({ complaint }: ComplaintDecisionPanelProp
 
       <RejectComplaintDialog open={isRejectOpen} onOpenChange={setIsRejectOpen} ticketId={id} />
       <DismissComplaintDialog open={isDismissOpen} onOpenChange={setIsDismissOpen} ticketId={id} />
+      {isMasterAdmin && (
+        <AssignOfficerDialog
+          open={isAssignOpen}
+          onOpenChange={setIsAssignOpen}
+          currentOfficerId={assignedOfficerId}
+          onAssign={(officerId) =>
+            startTransition(async () => {
+              await assignOfficerAction(id, officerId);
+              router.refresh();
+            })
+          }
+        />
+      )}
     </div>
   );
 }

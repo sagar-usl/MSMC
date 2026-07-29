@@ -1,5 +1,5 @@
 import { listComplaints } from "@/lib/complaints";
-import { ComplaintTable } from "@/components/complaints/ComplaintTable";
+import { FilterableComplaintsTable } from "./FilterableComplaintsTable";
 import {
   Card,
   CardContent,
@@ -22,7 +22,7 @@ export async function RecentComplaintsTable() {
       </CardHeader>
 
       <CardContent>
-        <ComplaintTable complaints={complaints} />
+        <FilterableComplaintsTable complaints={complaints} />
       </CardContent>
     </Card>
   );

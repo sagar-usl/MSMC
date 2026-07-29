@@ -15,12 +15,16 @@ export async function POST(request: NextRequest) {
   if (!body) {
     return corsJson({ error: "Invalid JSON body" }, { status: 400 });
   }
+  if (!body.mobile || !/^[0-9]{10}$/.test(body.mobile)) {
+    return corsJson({ error: "mobile must be a valid 10-digit number" }, { status: 400 });
+  }
 
   try {
     await createFeedback({
       rating: body.rating,
       name: body.name,
       message: body.message,
+      mobile: body.mobile,
     });
     return corsJson({ ok: true }, { status: 201 });
   } catch (err) {

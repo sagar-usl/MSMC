@@ -1,12 +1,19 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 
-/** Names of active officer accounts — used to populate Assign Officer / hearing-officer dropdowns. */
-export async function listActiveOfficerNames(): Promise<string[]> {
+export interface ActiveOfficer {
+  id: string;
+  name: string;
+}
+
+/** Active officer accounts — used to populate the Assign Officer / hearing-officer dropdowns. */
+export async function listActiveOfficers(): Promise<ActiveOfficer[]> {
   const officers = await prisma.user.findMany({
     where: { role: "OFFICER", isActive: true },
-    select: { name: true },
+    select: { id: true, name: true, email: true },
     orderBy: { name: "asc" },
   });
-  return officers.map((o) => o.name).filter((name): name is string => !!name);
+  return officers
+    .filter((o) => o.name || o.email)
+    .map((o) => ({ id: o.id, name: o.name ?? o.email! }));
 }

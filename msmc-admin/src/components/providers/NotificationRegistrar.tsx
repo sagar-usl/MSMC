@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { getMessaging, getToken } from "firebase/messaging";
+import { useRouter } from "next/navigation";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { firebaseApp } from "@/lib/firebase";
 
 /**
@@ -10,8 +11,11 @@ import { firebaseApp } from "@/lib/firebase";
  * pushed to the admin panel. Mounted once in the officer-only app layout.
  */
 export function NotificationRegistrar() {
+  const router = useRouter();
+
   useEffect(() => {
     let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
 
     async function register() {
       if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
@@ -32,14 +36,30 @@ export function NotificationRegistrar() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, platform: "web" }),
       });
+
+      // Pushes that arrive while this tab is focused are delivered here,
+      // not to the service worker (that's foreground vs. background FCM
+      // delivery) — without this handler they'd never be shown at all.
+      unsubscribe = onMessage(messaging, (payload) => {
+        const { title, body } = payload.notification ?? {};
+        if (!title) return;
+        const notification = new Notification(title, { body });
+        notification.onclick = () => {
+          window.focus();
+          const ticketId = payload.data?.ticketId;
+          router.push(ticketId ? `/complaints/${encodeURIComponent(ticketId)}` : "/feedback");
+          notification.close();
+        };
+      });
     }
 
     register().catch((err) => console.error("Notification registration failed:", err));
 
     return () => {
       cancelled = true;
+      unsubscribe?.();
     };
-  }, []);
+  }, [router]);
 
   return null;
 }

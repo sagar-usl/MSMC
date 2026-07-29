@@ -17,4 +17,5 @@ export interface Complaint {
   submittedAt: string;
   status: ComplaintStatus;
   assignedOfficer: string | null;
+  assignedOfficerId: string | null;
 }

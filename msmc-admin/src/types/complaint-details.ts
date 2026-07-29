@@ -23,6 +23,7 @@ export interface ComplaintDetails {
   submittedAt: string;
   status: ComplaintStatus;
   assignedOfficer: string | null;
+  assignedOfficerId: string | null;
   documents: ComplaintDocument[];
   rejectionReason: string | null;
   dismissalReason: string | null;

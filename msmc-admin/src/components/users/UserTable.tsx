@@ -39,16 +39,18 @@ export function UserTable({ users }: UserTableProps) {
             <TableCell>
               <span
                 className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${
-                  user.role === "OFFICER"
-                    ? "border-blue-200 bg-blue-100 text-blue-800"
-                    : "border-slate-200 bg-slate-100 text-slate-700"
+                  user.role === "MASTER_ADMIN"
+                    ? "border-purple-200 bg-purple-100 text-purple-800"
+                    : user.role === "OFFICER"
+                      ? "border-blue-200 bg-blue-100 text-blue-800"
+                      : "border-slate-200 bg-slate-100 text-slate-700"
                 }`}
               >
-                {user.role === "OFFICER" ? "Officer" : "Citizen"}
+                {user.role === "MASTER_ADMIN" ? "Master Admin" : user.role === "OFFICER" ? "Officer" : "Citizen"}
               </span>
             </TableCell>
             <TableCell>
-              {user.role === "OFFICER" ? (
+              {user.role === "OFFICER" || user.role === "MASTER_ADMIN" ? (
                 <span
                   className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${
                     user.isActive

@@ -37,6 +37,7 @@ export const config = {
     "/education/:path*",
     "/initiatives/:path*",
     "/news/:path*",
+    "/feedback/:path*",
     "/settings/:path*",
     // /api/v1/* is intentionally excluded — public citizen-facing API.
     // /api/uploads/* is officer-only but uses its own getCurrentOfficer() check.

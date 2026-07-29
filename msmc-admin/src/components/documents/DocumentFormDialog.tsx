@@ -42,20 +42,33 @@ function toForm(doc?: Document): DocumentInput {
   };
 }
 
+// Only mounts the body while open, so a Cancel (which never reset the form
+// before) can't leave stale data behind for the next time this dialog
+// opens — a fresh mount always starts correct via useState's initializer.
 export function DocumentFormDialog({ open, onOpenChange, initial, onSubmit }: DocumentFormDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        {open && (
+          <DocumentFormBody initial={initial} onSubmit={onSubmit} onClose={() => onOpenChange(false)} />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface DocumentFormBodyProps {
+  initial?: Document;
+  onSubmit: (input: DocumentInput) => Promise<void>;
+  onClose: () => void;
+}
+
+function DocumentFormBody({ initial, onSubmit, onClose }: DocumentFormBodyProps) {
   const [form, setForm] = useState<DocumentInput>(() => toForm(initial));
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isUploading, setIsUploading] = useState(false);
   const router = useRouter();
-
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (nextOpen) {
-      setForm(toForm(initial));
-      setError(null);
-    }
-    onOpenChange(nextOpen);
-  };
 
   // Bilingual fields are all-or-nothing: both languages or neither, never
   // English-only or Marathi-only.
@@ -96,113 +109,111 @@ export function DocumentFormDialog({ open, onOpenChange, initial, onSubmit }: Do
     setError(null);
     startTransition(async () => {
       await onSubmit(form);
-      onOpenChange(false);
+      onClose();
       router.refresh();
     });
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{initial ? "Edit Document" : "Add Document"}</DialogTitle>
-          <DialogDescription>Shown in the citizen app&apos;s Documents library.</DialogDescription>
-        </DialogHeader>
+    <>
+      <DialogHeader>
+        <DialogTitle>{initial ? "Edit Document" : "Add Document"}</DialogTitle>
+        <DialogDescription>Shown in the citizen app&apos;s Documents library.</DialogDescription>
+      </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="doc-title-en">Title (English)</Label>
-              <Input
-                id="doc-title-en"
-                value={form.titleEn}
-                onChange={(e) => setForm((f) => ({ ...f, titleEn: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="doc-title-mr">Title (Marathi)</Label>
-              <Input
-                id="doc-title-mr"
-                value={form.titleMr}
-                onChange={(e) => setForm((f) => ({ ...f, titleMr: e.target.value }))}
-              />
-            </div>
+      <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="doc-title-en">Title (English)</Label>
+            <Input
+              id="doc-title-en"
+              value={form.titleEn}
+              onChange={(e) => setForm((f) => ({ ...f, titleEn: e.target.value }))}
+            />
           </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="doc-meta-en">Meta (English)</Label>
-              <Input
-                id="doc-meta-en"
-                placeholder="PDF · 2.4 MB"
-                value={form.metaEn}
-                onChange={(e) => setForm((f) => ({ ...f, metaEn: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="doc-meta-mr">Meta (Marathi)</Label>
-              <Input
-                id="doc-meta-mr"
-                placeholder="PDF · 2.4 MB"
-                value={form.metaMr}
-                onChange={(e) => setForm((f) => ({ ...f, metaMr: e.target.value }))}
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="doc-title-mr">Title (Marathi)</Label>
+            <Input
+              id="doc-title-mr"
+              value={form.titleMr}
+              onChange={(e) => setForm((f) => ({ ...f, titleMr: e.target.value }))}
+            />
           </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="doc-category">Category</Label>
-              <Select
-                value={form.category}
-                onValueChange={(value) => setForm((f) => ({ ...f, category: value as DocumentCategory }))}
-              >
-                <SelectTrigger id="doc-category" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(documentCategoryLabels).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>PDF File</Label>
-              <label
-                htmlFor="doc-file-upload"
-                className="flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-input px-3 py-1.5 text-sm text-muted-foreground transition hover:border-ring hover:text-foreground"
-              >
-                {isUploading ? "Uploading…" : form.filePath ? "Replace PDF" : "Upload PDF"}
-                <input
-                  id="doc-file-upload"
-                  type="file"
-                  accept="application/pdf"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  disabled={isUploading}
-                />
-              </label>
-              {form.filePath && (
-                <p className="truncate text-xs text-muted-foreground">{form.filePath}</p>
-              )}
-            </div>
-          </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={isPending || isUploading}>
-            {isPending ? "Saving…" : initial ? "Save Changes" : "Add Document"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="doc-meta-en">Meta (English)</Label>
+            <Input
+              id="doc-meta-en"
+              placeholder="PDF · 2.4 MB"
+              value={form.metaEn}
+              onChange={(e) => setForm((f) => ({ ...f, metaEn: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="doc-meta-mr">Meta (Marathi)</Label>
+            <Input
+              id="doc-meta-mr"
+              placeholder="PDF · 2.4 MB"
+              value={form.metaMr}
+              onChange={(e) => setForm((f) => ({ ...f, metaMr: e.target.value }))}
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="doc-category">Category</Label>
+            <Select
+              value={form.category}
+              onValueChange={(value) => setForm((f) => ({ ...f, category: value as DocumentCategory }))}
+            >
+              <SelectTrigger id="doc-category" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(documentCategoryLabels).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>PDF File</Label>
+            <label
+              htmlFor="doc-file-upload"
+              className="flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-input px-3 py-1.5 text-sm text-muted-foreground transition hover:border-ring hover:text-foreground"
+            >
+              {isUploading ? "Uploading…" : form.filePath ? "Replace PDF" : "Upload PDF"}
+              <input
+                id="doc-file-upload"
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={handleFileUpload}
+                disabled={isUploading}
+              />
+            </label>
+            {form.filePath && (
+              <p className="truncate text-xs text-muted-foreground">{form.filePath}</p>
+            )}
+          </div>
+        </div>
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit} disabled={isPending || isUploading}>
+          {isPending ? "Saving…" : initial ? "Save Changes" : "Add Document"}
+        </Button>
+      </DialogFooter>
+    </>
   );
 }

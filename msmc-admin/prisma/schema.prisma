@@ -10,6 +10,11 @@ datasource db {
 enum Role {
   CITIZEN
   OFFICER
+  // Single fixed super-user account, auto-created on setup (see
+  // src/lib/bootstrap-master-admin.ts). Only role that can assign officers
+  // to complaints; also bypasses the assigned-officer-only restriction on
+  // every other complaint action.
+  MASTER_ADMIN
 }
 
 enum ComplaintCategory {
@@ -65,8 +70,27 @@ model User {
   statusChanges      ComplaintStatusHistory[]
   feedback           Feedback[]
   deviceTokens       DeviceToken[]
+  notifications      Notification[]
 
   @@map("users")
+}
+
+/// Persisted, in-app record of every push notification sent — backs the
+/// bell-icon notification list on both the admin panel and the citizen app.
+/// Push delivery (FCM) is best-effort and silent on failure, so this is the
+/// durable copy a user can always open and read later.
+model Notification {
+  id        String    @id @default(uuid())
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  title     String
+  body      String
+  ticketId  String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@map("notifications")
 }
 
 model DeviceToken {

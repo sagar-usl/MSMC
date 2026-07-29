@@ -1,11 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireOfficer } from "@/lib/auth";
+import { requireOfficer, requireMasterAdmin } from "@/lib/auth";
 import * as complaints from "@/lib/complaints";
 
 export async function acceptComplaintAction(ticketId: string) {
   const officer = await requireOfficer();
+  await complaints.assertCanActOnComplaint(ticketId, officer);
   await complaints.acceptComplaint(ticketId, officer.id);
   revalidatePath(`/complaints/${ticketId}`);
   revalidatePath("/dashboard");
@@ -13,6 +14,7 @@ export async function acceptComplaintAction(ticketId: string) {
 
 export async function rejectComplaintAction(ticketId: string, reason: string) {
   const officer = await requireOfficer();
+  await complaints.assertCanActOnComplaint(ticketId, officer);
   if (!reason.trim()) throw new Error("A rejection reason is required.");
   await complaints.rejectComplaint(ticketId, reason.trim(), officer.id);
   revalidatePath(`/complaints/${ticketId}`);
@@ -21,15 +23,17 @@ export async function rejectComplaintAction(ticketId: string, reason: string) {
 
 export async function dismissComplaintAction(ticketId: string, reason: string) {
   const officer = await requireOfficer();
+  await complaints.assertCanActOnComplaint(ticketId, officer);
   if (!reason.trim()) throw new Error("A dismissal reason is required.");
   await complaints.dismissComplaint(ticketId, reason.trim(), officer.id);
   revalidatePath(`/complaints/${ticketId}`);
   revalidatePath("/dashboard");
 }
 
-export async function assignOfficerAction(ticketId: string, officerName: string) {
-  await requireOfficer();
-  await complaints.assignOfficerName(ticketId, officerName);
+/** Master-admin-only: hands a complaint off to a specific officer's account. */
+export async function assignOfficerAction(ticketId: string, officerId: string) {
+  await requireMasterAdmin();
+  await complaints.assignOfficer(ticketId, officerId);
   revalidatePath(`/complaints/${ticketId}`);
   revalidatePath("/dashboard");
 }
@@ -42,6 +46,7 @@ export async function scheduleInterimHearingAction(
   data: { date: string; time: string; location: string; officerName: string }
 ) {
   const officer = await requireOfficer();
+  await complaints.assertCanActOnComplaint(ticketId, officer);
   await complaints.scheduleHearing(ticketId, "INTERIM", data, officer.id);
   revalidatePath(`/complaints/${ticketId}`);
 }
@@ -51,12 +56,14 @@ export async function scheduleFinalHearingAction(
   data: { date: string; time: string; location: string; officerName: string }
 ) {
   const officer = await requireOfficer();
+  await complaints.assertCanActOnComplaint(ticketId, officer);
   await complaints.scheduleHearing(ticketId, "FINAL", data, officer.id);
   revalidatePath(`/complaints/${ticketId}`);
 }
 
 export async function uploadVerdictAction(ticketId: string, fileName: string) {
   const officer = await requireOfficer();
+  await complaints.assertCanActOnComplaint(ticketId, officer);
   await complaints.uploadVerdict(ticketId, fileName, officer.id);
   revalidatePath(`/complaints/${ticketId}`);
 }

@@ -11,11 +11,6 @@ export interface LoginState {
 }
 
 export async function login(_prevState: LoginState, formData: FormData): Promise<LoginState> {
-  const ip = clientIpFromHeaders(await headers());
-  if (isRateLimited(`login:${ip}`, 5, 15 * 60 * 1000)) {
-    return { error: "Too many login attempts. Please try again in a few minutes." };
-  }
-
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
@@ -23,8 +18,17 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     return { error: "Enter both email and password." };
   }
 
+  // Keyed by account, not just IP: a plain IP key collapses to one shared
+  // "unknown" bucket for every caller when there's no reverse proxy in
+  // front (local dev, or a misconfigured one) — meaning repeated attempts
+  // on ANY account would lock out login for every OTHER account too.
+  const ip = clientIpFromHeaders(await headers());
+  if (isRateLimited(`login:${ip}:${email}`, 5, 15 * 60 * 1000)) {
+    return { error: "Too many login attempts. Please try again in a few minutes." };
+  }
+
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || user.role !== "OFFICER" || !user.passwordHash) {
+  if (!user || (user.role !== "OFFICER" && user.role !== "MASTER_ADMIN") || !user.passwordHash) {
     return { error: "Invalid email or password." };
   }
 

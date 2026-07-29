@@ -10,7 +10,7 @@ const badgeVariants: Record<ComplaintStatus, string> = {
   DISMISSED: "bg-slate-200 text-slate-800 border-slate-300",
 };
 
-const statusLabels: Record<ComplaintStatus, string> = {
+export const statusLabels: Record<ComplaintStatus, string> = {
   UNDER_REVIEW: "Under Review",
   ACCEPTED: "Accepted",
   REJECTED: "Rejected",

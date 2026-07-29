@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Newspaper,
   Settings,
+  Star,
 } from "lucide-react";
 
 export const NAVIGATION = [
@@ -50,6 +51,12 @@ export const NAVIGATION = [
     title: "News",
     href: "/news",
     icon: Newspaper,
+  },
+
+  {
+    title: "Feedback",
+    href: "/feedback",
+    icon: Star,
   },
 
   {
